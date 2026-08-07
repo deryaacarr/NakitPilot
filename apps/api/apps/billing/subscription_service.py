@@ -34,6 +34,11 @@ class Feature:
     ADVANCED_WORKFLOWS = "advanced_workflows"
     FORECAST_SCENARIOS = "forecast_scenarios"
     WHAT_IF_ANALYSIS = "what_if_analysis"
+    # EPIC 30 / 31
+    CUSTOM_ROLES = "custom_roles"
+    BRANCHES = "branches"
+    SSO = "sso"
+    DATA_GOVERNANCE = "data_governance"
 
 
 DEFAULT_ENTITLEMENTS: dict[str, dict[str, Any]] = {
@@ -50,6 +55,10 @@ DEFAULT_ENTITLEMENTS: dict[str, dict[str, Any]] = {
         Feature.ADVANCED_WORKFLOWS: False,
         Feature.FORECAST_SCENARIOS: False,
         Feature.WHAT_IF_ANALYSIS: False,
+        Feature.CUSTOM_ROLES: False,
+        Feature.BRANCHES: False,
+        Feature.SSO: False,
+        Feature.DATA_GOVERNANCE: False,
     },
     PlanCode.PROFESSIONAL: {
         Feature.MAX_USERS: 10,
@@ -64,6 +73,10 @@ DEFAULT_ENTITLEMENTS: dict[str, dict[str, Any]] = {
         Feature.ADVANCED_WORKFLOWS: True,
         Feature.FORECAST_SCENARIOS: True,
         Feature.WHAT_IF_ANALYSIS: True,
+        Feature.CUSTOM_ROLES: False,
+        Feature.BRANCHES: False,
+        Feature.SSO: False,
+        Feature.DATA_GOVERNANCE: True,
     },
     PlanCode.BUSINESS: {
         Feature.MAX_USERS: 50,
@@ -78,6 +91,10 @@ DEFAULT_ENTITLEMENTS: dict[str, dict[str, Any]] = {
         Feature.ADVANCED_WORKFLOWS: True,
         Feature.FORECAST_SCENARIOS: True,
         Feature.WHAT_IF_ANALYSIS: True,
+        Feature.CUSTOM_ROLES: True,
+        Feature.BRANCHES: True,
+        Feature.SSO: False,
+        Feature.DATA_GOVERNANCE: True,
     },
     PlanCode.ENTERPRISE: {
         Feature.MAX_USERS: 10_000,
@@ -92,6 +109,10 @@ DEFAULT_ENTITLEMENTS: dict[str, dict[str, Any]] = {
         Feature.ADVANCED_WORKFLOWS: True,
         Feature.FORECAST_SCENARIOS: True,
         Feature.WHAT_IF_ANALYSIS: True,
+        Feature.CUSTOM_ROLES: True,
+        Feature.BRANCHES: True,
+        Feature.SSO: True,
+        Feature.DATA_GOVERNANCE: True,
     },
 }
 

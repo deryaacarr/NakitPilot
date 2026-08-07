@@ -102,6 +102,13 @@ class CustomerListCreateView(TenantQuerysetMixin, generics.ListCreateAPIView):
         if ordering in allowed:
             qs = qs.order_by(ordering)
 
+        # NP-301 — resource-scoped customer visibility
+        membership = getattr(self.request, "membership", None)
+        if membership is not None:
+            from apps.organizations.resource_scope import filter_customers_for_membership
+
+            qs = filter_customers_for_membership(membership, qs)
+
         return qs
 
     def perform_create(self, serializer):
@@ -145,7 +152,37 @@ class CustomerDetailView(TenantQuerysetMixin, generics.RetrieveUpdateDestroyAPIV
                     queryset=CustomerContact.objects.order_by("-is_primary", "full_name"),
                 )
             )
+        membership = getattr(self.request, "membership", None)
+        if membership is not None:
+            from apps.organizations.resource_scope import filter_customers_for_membership
+
+            qs = filter_customers_for_membership(membership, qs)
         return qs
+
+    def retrieve(self, request, *args, **kwargs):
+        response = super().retrieve(request, *args, **kwargs)
+        membership = getattr(request, "membership", None)
+        if membership is not None and isinstance(response.data, dict):
+            from apps.organizations.resource_scope import mask_customer_payload
+
+            response.data = mask_customer_payload(dict(response.data), membership)
+        try:
+            from apps.governance.access import record_access
+            from apps.governance.models import DataAccessAction
+
+            org = getattr(request, "organization", None)
+            if org is not None:
+                record_access(
+                    org,
+                    actor=request.user,
+                    action=DataAccessAction.VIEW_CUSTOMER,
+                    resource_type="customer",
+                    resource_id=kwargs.get("pk"),
+                    summary="Müşteri detayı görüntülendi",
+                )
+        except Exception:  # noqa: BLE001
+            pass
+        return response
 
     def perform_update(self, serializer):
         from apps.audit.models import write_audit_log

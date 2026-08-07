@@ -75,6 +75,22 @@ class Membership(models.Model):
         related_name="memberships",
     )
     role = models.CharField(max_length=32, choices=Role.choices)
+    # NP-300 — optional org-defined role (overrides built-in permission matrix)
+    custom_role = models.ForeignKey(
+        "organizations.CustomRole",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="memberships",
+    )
+    # NP-302 — primary branch for resource scoping
+    branch = models.ForeignKey(
+        "organizations.Branch",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="memberships",
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -178,3 +194,13 @@ class OrganizationHoliday(models.Model):
 
     def __str__(self) -> str:
         return f"{self.organization_id}:{self.date} {self.name}"
+
+
+# NP-300–302 — imported so Django discovers models under this app label
+from apps.organizations.structure import (  # noqa: E402
+    Branch,
+    CustomRole,
+    CustomerAssignment,
+    Team,
+    TeamMembership,
+)

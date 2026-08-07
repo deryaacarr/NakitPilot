@@ -35,7 +35,26 @@ class LoginView(APIView):
             else:
                 payload = {"code": getattr(exc, "default_code", "authentication_failed"), "detail": detail}
             return Response(payload, status=status.HTTP_401_UNAUTHORIZED)
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        data = serializer.validated_data
+        # NP-305 — register device session from refresh jti
+        try:
+            from rest_framework_simplejwt.tokens import RefreshToken
+
+            from apps.governance.sessions import register_session
+
+            refresh = RefreshToken(data["refresh"])
+            session = register_session(serializer.user, refresh, request)
+            data = {
+                **data,
+                "session": {
+                    "id": session.id,
+                    "device_label": session.device_label,
+                    "is_suspicious": session.is_suspicious,
+                },
+            }
+        except Exception:  # noqa: BLE001
+            pass
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class RefreshView(TokenRefreshView):

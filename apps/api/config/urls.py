@@ -43,4 +43,5 @@ urlpatterns = [
     path("api/payables/", include("apps.payables.urls")),
     path("api/billing/", include("apps.billing.urls")),
     path("api/onboarding/", include("apps.onboarding.urls")),
+    path("api/governance/", include("apps.governance.urls")),
 ]
