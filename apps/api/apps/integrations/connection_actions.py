@@ -166,56 +166,78 @@ def start_sync(
 
     t0 = time.perf_counter()
     rate_limit = {"limited": False, "remaining": None, "reset_at": None, "message": ""}
+    from apps.ops.locks import LockError, distributed_lock
+    from apps.ops.tracing import span
 
     try:
-        connector = _bound_connector(connection)
-        probe = connector.test_connection()
-        if not probe.get("ok"):
-            raise ConnectionActionError(str(probe.get("message") or "Senkronizasyon öncesi test başarısız."))
+        with distributed_lock("integration_sync", connection.pk, timeout=3600):
+            with span("integration.sync", connection_id=connection.pk):
+                connector = _bound_connector(connection)
+                probe = connector.test_connection()
+                if not probe.get("ok"):
+                    raise ConnectionActionError(
+                        str(probe.get("message") or "Senkronizasyon öncesi test başarısız.")
+                    )
 
-        from apps.integrations.sync_customers import sync_customers_for_connection
-        from apps.integrations.sync_invoices import sync_invoices_for_connection
-        from apps.integrations.sync_payments import sync_payments_for_connection
+                from apps.integrations.sync_customers import sync_customers_for_connection
+                from apps.integrations.sync_invoices import sync_invoices_for_connection
+                from apps.integrations.sync_payments import sync_payments_for_connection
 
-        customer_stats = sync_customers_for_connection(
-            connection, connector, job, force_full=force_full
-        )
-        invoice_stats = sync_invoices_for_connection(
-            connection, connector, job, force_full=force_full
-        )
-        payment_stats = sync_payments_for_connection(
-            connection, connector, job, force_full=force_full
-        )
+                customer_stats = sync_customers_for_connection(
+                    connection, connector, job, force_full=force_full
+                )
+                invoice_stats = sync_invoices_for_connection(
+                    connection, connector, job, force_full=force_full
+                )
+                payment_stats = sync_payments_for_connection(
+                    connection, connector, job, force_full=force_full
+                )
 
-        elapsed_ms = int((time.perf_counter() - t0) * 1000)
-        job.status = SyncJobStatus.COMPLETED
+                elapsed_ms = int((time.perf_counter() - t0) * 1000)
+                job.status = SyncJobStatus.COMPLETED
+                job.finished_at = timezone.now()
+                job.stats_json = {
+                    "mode": "full" if force_full else "incremental",
+                    "customers": customer_stats,
+                    "invoices": invoice_stats,
+                    "payments": payment_stats,
+                    "api_duration_ms": elapsed_ms,
+                    "rate_limit": rate_limit,
+                }
+                job.error_message = ""
+                job.save(
+                    update_fields=[
+                        "status",
+                        "finished_at",
+                        "stats_json",
+                        "error_message",
+                        "updated_at",
+                    ]
+                )
+
+                connection.last_sync_at = job.finished_at
+                connection.last_successful_sync_at = job.finished_at
+                connection.last_error = ""
+                connection.status = ConnectionStatus.CONNECTED
+                connection.next_sync_at = compute_next_sync_at(
+                    connection.sync_frequency, from_time=job.finished_at
+                )
+                connection.save(
+                    update_fields=[
+                        "last_sync_at",
+                        "last_successful_sync_at",
+                        "last_error",
+                        "status",
+                        "next_sync_at",
+                        "updated_at",
+                    ]
+                )
+    except LockError as exc:
+        job.status = SyncJobStatus.FAILED
         job.finished_at = timezone.now()
-        job.stats_json = {
-            "mode": "full" if force_full else "incremental",
-            "customers": customer_stats,
-            "invoices": invoice_stats,
-            "payments": payment_stats,
-            "api_duration_ms": elapsed_ms,
-            "rate_limit": rate_limit,
-        }
-        job.error_message = ""
-        job.save(update_fields=["status", "finished_at", "stats_json", "error_message", "updated_at"])
-
-        connection.last_sync_at = job.finished_at
-        connection.last_successful_sync_at = job.finished_at
-        connection.last_error = ""
-        connection.status = ConnectionStatus.CONNECTED
-        connection.next_sync_at = compute_next_sync_at(connection.sync_frequency, from_time=job.finished_at)
-        connection.save(
-            update_fields=[
-                "last_sync_at",
-                "last_successful_sync_at",
-                "last_error",
-                "status",
-                "next_sync_at",
-                "updated_at",
-            ]
-        )
+        job.error_message = "Senkronizasyon zaten çalışıyor (distributed lock)."
+        job.save(update_fields=["status", "finished_at", "error_message", "updated_at"])
+        raise ConnectionActionError(job.error_message, status_code=409) from exc
     except Exception as exc:  # noqa: BLE001
         message = str(exc)
         if "429" in message or "rate limit" in message.lower():

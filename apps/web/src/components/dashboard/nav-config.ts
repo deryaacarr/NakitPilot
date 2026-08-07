@@ -30,5 +30,6 @@ export const DASHBOARD_NAV: NavItem[] = [
   { href: "/dashboard/reports", label: "Raporlar", icon: "reports" },
   { href: "/dashboard/developers", label: "Geliştiriciler", icon: "developers" },
   { href: "/onboarding", label: "Kurulum", icon: "imports" },
+  { href: "/status", label: "Durum", icon: "notifications" },
   { href: "/dashboard/settings", label: "Ayarlar", icon: "settings" },
 ];

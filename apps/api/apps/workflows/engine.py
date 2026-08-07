@@ -246,6 +246,25 @@ def run_workflow(
     if existing:
         return existing
 
+    # NP-325 — prevent duplicate concurrent execution for same idempotency key
+    from django.core.cache import cache
+
+    from apps.ops.locks import lock_key
+
+    wf_lock = lock_key(
+        "workflow_execution",
+        workflow.organization_id,
+        workflow.pk,
+        idempotency_key,
+    )
+    if not cache.add(wf_lock, "1", timeout=600):
+        existing = WorkflowExecution.objects.filter(
+            organization=workflow.organization,
+            idempotency_key=idempotency_key,
+        ).first()
+        if existing:
+            return existing
+
     trigger = _trigger_step(workflow)
     # Legacy workflows without trigger node: start at first step
     start = trigger or workflow.steps.filter(is_active=True).order_by("order", "id").first()

@@ -83,6 +83,13 @@ class Customer(TenantModel):
         ordering = ("name",)
         verbose_name = "customer"
         verbose_name_plural = "customers"
+        indexes = [
+            # NP-321
+            models.Index(fields=["organization", "created_at"], name="cust_org_created_idx"),
+            models.Index(fields=["organization", "assigned_user"], name="cust_org_assigned_idx"),
+            models.Index(fields=["organization", "risk_status"], name="cust_org_risk_idx"),
+            models.Index(fields=["organization", "source", "external_id"], name="cust_org_src_ext_idx"),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=("organization", "code"),

@@ -72,7 +72,16 @@ services:
       dockerfile: Dockerfile
       target: development
     container_name: nakitpilot-celery-worker
-    command: ["celery", "-A", "config", "worker", "--loglevel=info"]
+    command:
+      [
+        "celery",
+        "-A",
+        "config",
+        "worker",
+        "--loglevel=info",
+        "-Q",
+        "default,imports,integrations,notifications,risk,forecast,exports,webhooks,ai",
+      ]
     env_file:
       - .env
     environment:

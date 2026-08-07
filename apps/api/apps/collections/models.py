@@ -253,6 +253,18 @@ class CollectionActivity(TenantModel):
         ordering = ("-occurred_at", "-id")
         verbose_name = "collection activity"
         verbose_name_plural = "collection activities"
+        indexes = [
+            # NP-321 — activity_at ≈ occurred_at
+            models.Index(
+                fields=["organization", "occurred_at"],
+                name="act_org_occurred_idx",
+            ),
+            models.Index(
+                fields=["organization", "customer", "occurred_at"],
+                name="act_org_cust_occurred_idx",
+            ),
+            models.Index(fields=["organization", "created_at"], name="act_org_created_idx"),
+        ]
 
     def __str__(self) -> str:
         return f"{self.activity_type}: {self.summary}"

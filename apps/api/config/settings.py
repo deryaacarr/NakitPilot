@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     "apps.billing",
     "apps.onboarding",
     "apps.governance",
+    "apps.ops",
     "apps.health",
 ]
 
@@ -88,6 +89,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "apps.organizations.middleware.TenantMiddleware",
+    "apps.ops.middleware.ObservabilityMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -200,17 +202,29 @@ LOGGING = {
         "sensitive_data": {
             "()": "apps.security.masking.SensitiveDataFilter",
         },
+        "ops_context": {
+            "()": "apps.ops.logging_context.ContextFilter",
+        },
     },
     "formatters": {
         "standard": {
             "format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         },
+        # NP-330 — structured fields on every line
+        "ops": {
+            "format": (
+                "%(asctime)s [%(levelname)s] service=%(service)s env=%(environment)s "
+                "request_id=%(request_id)s trace_id=%(trace_id)s org=%(organization_id)s "
+                "user=%(user_id)s action=%(action)s duration_ms=%(duration_ms)s "
+                "status=%(status)s %(name)s: %(message)s"
+            ),
+        },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "filters": ["sensitive_data"],
-            "formatter": "standard",
+            "filters": ["sensitive_data", "ops_context"],
+            "formatter": "ops",
         },
     },
     "root": {
@@ -297,6 +311,24 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER", False)
+# NP-324 — dedicated queues so heavy imports don't starve notifications
+CELERY_TASK_DEFAULT_QUEUE = "default"
+# NP-324 — route heavy work away from notifications/default
+CELERY_TASK_ROUTES = {
+    "imports.process_import_job": {"queue": "imports"},
+    "risk.calculate_customer_risk": {"queue": "risk"},
+    "risk.resolve_outcomes": {"queue": "risk"},
+    "risk.train_models": {"queue": "risk"},
+    "forecasting.calculate_organization_forecast": {"queue": "forecast"},
+    "reports.generate_export": {"queue": "exports"},
+    "reports.expire_stale_exports": {"queue": "exports"},
+    "webhooks.process_delivery": {"queue": "webhooks"},
+    "webhooks.process_due_deliveries": {"queue": "webhooks"},
+    "notifications.dispatch_org_timezone_jobs": {"queue": "notifications"},
+    "notifications.generate_daily_reminders": {"queue": "notifications"},
+    "messaging.send_outbound_email": {"queue": "notifications"},
+    "messaging.send_outbound_whatsapp": {"queue": "notifications"},
+}
 # NP-142: jobs run per organization timezone via dispatcher (not fixed UTC).
 # Local times: 08:00 reminders, 00:15 overdue invoices, 00:30 broken promises,
 # 01:00 risk, Monday 01:30 weekly forecast.
@@ -333,6 +365,14 @@ CELERY_BEAT_SCHEDULE = {
     "process-due-workflow-resumes": {
         "task": "workflows.process_due_resumes",
         "schedule": crontab(minute="*/1"),
+    },
+    "ops-evaluate-alerts": {
+        "task": "ops.evaluate_alerts",
+        "schedule": crontab(minute="*/5"),
+    },
+    "ops-refresh-read-models": {
+        "task": "ops.refresh_read_models",
+        "schedule": crontab(minute="*/15"),
     },
 }
 

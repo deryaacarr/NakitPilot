@@ -59,14 +59,31 @@ class DashboardOverviewView(_DashboardBase):
             rng = _range_from_request(request)
         except DateRangeError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(
-            dashboard_overview(
+        from apps.ops.caching import TTL_DASHBOARD, get_or_set_org
+
+        use_rm = (request.query_params.get("read_model") or "").lower() in {"1", "true"}
+        if use_rm:
+            from apps.dashboard.read_models import read_model_overview
+
+            rm = read_model_overview(organization.id)
+            if rm is not None:
+                return Response(rm)
+
+        payload = get_or_set_org(
+            organization.id,
+            "dashboard_overview",
+            lambda: dashboard_overview(
                 organization.id,
                 preset=rng["preset"],
                 date_from=rng["date_from"],
                 date_to=rng["date_to"],
-            )
+            ),
+            rng["preset"],
+            str(rng["date_from"]),
+            str(rng["date_to"]),
+            ttl=TTL_DASHBOARD,
         )
+        return Response(payload)
 
 
 class DashboardSummaryView(_DashboardBase):
@@ -78,14 +95,23 @@ class DashboardSummaryView(_DashboardBase):
             rng = _range_from_request(request)
         except DateRangeError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(
-            dashboard_summary(
+        from apps.ops.caching import TTL_DASHBOARD, get_or_set_org
+
+        payload = get_or_set_org(
+            organization.id,
+            "dashboard_cards",
+            lambda: dashboard_summary(
                 organization.id,
                 as_of=rng["as_of"],
                 date_from=rng["date_from"],
                 date_to=rng["date_to"],
-            )
+            ),
+            str(rng["as_of"]),
+            str(rng["date_from"]),
+            str(rng["date_to"]),
+            ttl=TTL_DASHBOARD,
         )
+        return Response(payload)
 
 
 class DashboardAgingView(_DashboardBase):
@@ -97,7 +123,16 @@ class DashboardAgingView(_DashboardBase):
             rng = _range_from_request(request)
         except DateRangeError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(aging_report(organization.id, as_of=rng["as_of"]))
+        from apps.ops.caching import TTL_AGING, get_or_set_org
+
+        payload = get_or_set_org(
+            organization.id,
+            "aging_report",
+            lambda: aging_report(organization.id, as_of=rng["as_of"]),
+            str(rng["as_of"]),
+            ttl=TTL_AGING,
+        )
+        return Response(payload)
 
 
 class DashboardCallListView(_DashboardBase):

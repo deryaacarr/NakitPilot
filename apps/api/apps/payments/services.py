@@ -256,6 +256,44 @@ def create_payment(
     if customer.organization_id != organization.id:
         raise PaymentValidationError("Müşteri bu organizasyona ait değil.", "customer_mismatch")
 
+    from apps.ops.locks import LockError, distributed_lock
+
+    try:
+        with distributed_lock("payment_allocate", organization.id, customer.id, timeout=120):
+            return _create_payment_locked(
+                organization=organization,
+                customer=customer,
+                payment_date=payment_date,
+                amount=amount,
+                currency=currency,
+                method=method,
+                reference=reference,
+                notes=notes,
+                recorded_by=recorded_by,
+                allocations=allocations,
+                auto_allocate=auto_allocate,
+            )
+    except LockError as exc:
+        raise PaymentValidationError(
+            "Bu müşteri için ödeme dağıtımı zaten çalışıyor.",
+            "lock_held",
+        ) from exc
+
+
+def _create_payment_locked(
+    *,
+    organization,
+    customer,
+    payment_date,
+    amount: Decimal,
+    currency: str,
+    method: str,
+    reference: str,
+    notes: str,
+    recorded_by,
+    allocations: list[dict[str, Any]] | None,
+    auto_allocate: bool,
+) -> Payment:
     plan = list(allocations or [])
     if auto_allocate:
         plan = auto_allocate_oldest_first(

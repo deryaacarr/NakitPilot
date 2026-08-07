@@ -92,6 +92,14 @@ class Invoice(TenantModel):
         ordering = ("-invoice_date", "-id")
         verbose_name = "invoice"
         verbose_name_plural = "invoices"
+        indexes = [
+            # NP-321
+            models.Index(fields=["organization", "status", "due_date"], name="inv_org_status_due_idx"),
+            models.Index(fields=["organization", "customer", "status"], name="inv_org_cust_status_idx"),
+            models.Index(fields=["organization", "created_at"], name="inv_org_created_idx"),
+            models.Index(fields=["organization", "source", "external_id"], name="inv_org_src_ext_idx"),
+            models.Index(fields=["customer", "due_date"], name="inv_customer_due_idx"),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=("organization", "number"),
