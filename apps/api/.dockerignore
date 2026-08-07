@@ -1,0 +1,14 @@
+__pycache__
+*.py[cod]
+.venv
+venv
+.env
+.env.local
+*.sqlite3
+staticfiles
+media
+private_uploads
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.git

@@ -1,0 +1,139 @@
+"""In-app notifications (NP-140–142)."""
+
+from __future__ import annotations
+
+from django.conf import settings
+from django.db import models
+
+from apps.organizations.tenancy import TenantModel
+
+
+class AlertSeverity(models.TextChoices):
+    INFO = "INFO", "Info"
+    WARNING = "WARNING", "Warning"
+    CRITICAL = "CRITICAL", "Critical"
+
+
+class NotificationType(models.TextChoices):
+    """NP-140 typed in-app notifications."""
+
+    TASK_DUE = "TASK_DUE", "Görev vadesi"
+    TASK_OVERDUE = "TASK_OVERDUE", "Gecikmiş görev"
+    PROMISE_DUE = "PROMISE_DUE", "Ödeme sözü vadesi"
+    PROMISE_BROKEN = "PROMISE_BROKEN", "Bozulan ödeme sözü"
+    HIGH_RISK_CUSTOMER = "HIGH_RISK_CUSTOMER", "Yüksek riskli müşteri"
+    IMPORT_COMPLETED = "IMPORT_COMPLETED", "İçe aktarma tamamlandı"
+    IMPORT_FAILED = "IMPORT_FAILED", "İçe aktarma başarısız"
+
+
+# Deep-link helpers for the web app
+NOTIFICATION_HREF = {
+    NotificationType.TASK_DUE: "/collections",
+    NotificationType.TASK_OVERDUE: "/collections",
+    NotificationType.PROMISE_DUE: "/promises",
+    NotificationType.PROMISE_BROKEN: "/promises",
+    NotificationType.HIGH_RISK_CUSTOMER: "/customers/{id}",
+    NotificationType.IMPORT_COMPLETED: "/imports",
+    NotificationType.IMPORT_FAILED: "/imports",
+}
+
+
+class DashboardAlert(TenantModel):
+    """In-app notification (NP-140)."""
+
+    title = models.CharField(max_length=255)
+    body = models.TextField(blank=True)
+    severity = models.CharField(
+        max_length=16,
+        choices=AlertSeverity.choices,
+        default=AlertSeverity.WARNING,
+    )
+    notification_type = models.CharField(
+        max_length=32,
+        choices=NotificationType.choices,
+        blank=True,
+        db_index=True,
+    )
+    category = models.CharField(max_length=64, blank=True, db_index=True)
+    entity_type = models.CharField(max_length=64, blank=True)
+    entity_id = models.CharField(max_length=64, blank=True)
+    href = models.CharField(max_length=255, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_for = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="dashboard_alerts",
+        help_text="Optional target user; null = org-wide.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "dashboard alert"
+        verbose_name_plural = "dashboard alerts"
+
+    def __str__(self) -> str:
+        return self.title
+
+
+def resolve_notification_href(
+    notification_type: str,
+    *,
+    entity_type: str = "",
+    entity_id: str | int = "",
+) -> str:
+    template = NOTIFICATION_HREF.get(notification_type, "")
+    if not template:
+        return ""
+    if "{id}" in template and entity_id != "":
+        return template.format(id=entity_id)
+    if notification_type in {
+        NotificationType.TASK_DUE,
+        NotificationType.TASK_OVERDUE,
+    } and entity_id != "":
+        return f"/collections?task={entity_id}"
+    if notification_type in {
+        NotificationType.PROMISE_DUE,
+        NotificationType.PROMISE_BROKEN,
+    } and entity_id != "":
+        return f"/promises?promise={entity_id}"
+    return template.replace("/{id}", "").replace("{id}", "")
+
+
+def create_dashboard_alert(
+    *,
+    organization,
+    title: str,
+    body: str = "",
+    severity: str = AlertSeverity.WARNING,
+    notification_type: str = "",
+    category: str = "",
+    entity_type: str = "",
+    entity_id: str | int = "",
+    created_for=None,
+    href: str = "",
+) -> DashboardAlert:
+    ntype = notification_type or category.upper().replace("-", "_")
+    # Map legacy broken_promise → PROMISE_BROKEN
+    if ntype == "BROKEN_PROMISE" or category == "broken_promise":
+        ntype = NotificationType.PROMISE_BROKEN
+    if ntype and ntype not in NotificationType.values:
+        ntype = notification_type or ""
+    cat = category or (ntype.lower() if ntype else "")
+    link = href or resolve_notification_href(
+        ntype, entity_type=entity_type, entity_id=entity_id
+    )
+    return DashboardAlert.objects.create(
+        organization=organization,
+        title=title[:255],
+        body=body,
+        severity=severity,
+        notification_type=ntype,
+        category=cat,
+        entity_type=entity_type,
+        entity_id=str(entity_id) if entity_id != "" else "",
+        href=link[:255],
+        created_for=created_for,
+    )

@@ -1,0 +1,2 @@
+müşteri_kodu,müşteri_adı,vergi_numarası,fatura_numarası,fatura_tarihi,vade_tarihi,para_birimi,fatura_tutarı,ödenen_tutar,telefon,email
+E2E-IMP,E2E Import Cari,,E2E-IMP-INV-1,2026-07-01,2026-08-15,TRY,750.00,0,,e2e-import@example.com

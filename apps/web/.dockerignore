@@ -1,0 +1,10 @@
+node_modules
+.next
+out
+build
+coverage
+.env*.local
+.git
+README.md
+AGENTS.md
+CLAUDE.md

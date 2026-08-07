@@ -1,0 +1,17 @@
+Django>=5.2,<6
+djangorestframework>=3.15
+psycopg[binary]>=3.2
+python-dotenv>=1.0
+django-cors-headers>=4.4
+celery>=5.4
+redis>=5.0
+djangorestframework-simplejwt>=5.3
+openpyxl>=3.1
+gunicorn>=23.0
+whitenoise>=6.7
+sentry-sdk[django,celery]>=2.19
+cryptography>=43.0
+drf-spectacular>=0.28
+scikit-learn>=1.5
+joblib>=1.4
+numpy>=2.0

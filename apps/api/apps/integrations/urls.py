@@ -1,0 +1,75 @@
+from django.urls import path
+
+from apps.integrations.views import (
+    IntegrationCompaniesView,
+    IntegrationConflictListView,
+    IntegrationConflictResolveView,
+    IntegrationConnectionDetailView,
+    IntegrationConnectionListCreateView,
+    IntegrationCredentialView,
+    IntegrationMonitoringView,
+    IntegrationProviderListView,
+    IntegrationSelectCompanyView,
+    IntegrationStartSyncView,
+    IntegrationSyncSettingsView,
+    IntegrationTestConnectionView,
+)
+
+urlpatterns = [
+    path("providers/", IntegrationProviderListView.as_view(), name="integration-provider-list"),
+    path(
+        "connections/",
+        IntegrationConnectionListCreateView.as_view(),
+        name="integration-connection-list-create",
+    ),
+    path(
+        "connections/<int:pk>/",
+        IntegrationConnectionDetailView.as_view(),
+        name="integration-connection-detail",
+    ),
+    path(
+        "connections/<int:connection_id>/credentials/",
+        IntegrationCredentialView.as_view(),
+        name="integration-connection-credentials",
+    ),
+    path(
+        "connections/<int:connection_id>/test/",
+        IntegrationTestConnectionView.as_view(),
+        name="integration-connection-test",
+    ),
+    path(
+        "connections/<int:connection_id>/companies/",
+        IntegrationCompaniesView.as_view(),
+        name="integration-connection-companies",
+    ),
+    path(
+        "connections/<int:connection_id>/select-company/",
+        IntegrationSelectCompanyView.as_view(),
+        name="integration-connection-select-company",
+    ),
+    path(
+        "connections/<int:connection_id>/sync-settings/",
+        IntegrationSyncSettingsView.as_view(),
+        name="integration-connection-sync-settings",
+    ),
+    path(
+        "connections/<int:connection_id>/sync/",
+        IntegrationStartSyncView.as_view(),
+        name="integration-connection-sync",
+    ),
+    path(
+        "connections/<int:connection_id>/monitoring/",
+        IntegrationMonitoringView.as_view(),
+        name="integration-connection-monitoring",
+    ),
+    path(
+        "connections/<int:connection_id>/conflicts/",
+        IntegrationConflictListView.as_view(),
+        name="integration-connection-conflicts",
+    ),
+    path(
+        "connections/<int:connection_id>/conflicts/<int:conflict_id>/resolve/",
+        IntegrationConflictResolveView.as_view(),
+        name="integration-connection-conflict-resolve",
+    ),
+]
