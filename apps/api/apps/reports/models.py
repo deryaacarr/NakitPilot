@@ -13,6 +13,7 @@ class ReportType(models.TextChoices):
     OVERDUE_RECEIVABLES = "OVERDUE_RECEIVABLES", "Gecikmiş alacak"
     COLLECTION_ACTIVITY = "COLLECTION_ACTIVITY", "Tahsilat aktivite"
     CUSTOMER_RISK = "CUSTOMER_RISK", "Müşteri risk"
+    DISPUTE_RESOLUTION = "DISPUTE_RESOLUTION", "İtiraz çözüm süresi"
 
 
 class ExportJobStatus(models.TextChoices):

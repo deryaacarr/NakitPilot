@@ -5,7 +5,9 @@ import { useCallback, useEffect, useState } from "react";
 
 import { CustomerAssistantSummary } from "@/components/customers/customer-assistant-summary";
 import { CustomerPaymentPlanSuggestions } from "@/components/customers/customer-payment-plan-suggestions";
+import { CustomerCommunicationPanel } from "@/components/customers/customer-communication-panel";
 import { CustomerContactsPanel } from "@/components/customers/customer-contacts-panel";
+import { CustomerDisputesPanel } from "@/components/customers/customer-disputes-panel";
 import { CustomerRiskExplanation } from "@/components/customers/customer-risk-explanation";
 import { CustomerRiskHistoryChart } from "@/components/customers/customer-risk-history";
 import { CustomerTimeline } from "@/components/customers/customer-timeline";
@@ -23,7 +25,15 @@ import type { AppError } from "@/lib/errors";
 import { cn } from "@/lib/cn";
 import { useRouter } from "next/navigation";
 
-type TabId = "summary" | "invoices" | "payments" | "collections" | "promises" | "tasks" | "notes";
+type TabId =
+  | "summary"
+  | "invoices"
+  | "payments"
+  | "collections"
+  | "promises"
+  | "tasks"
+  | "disputes"
+  | "notes";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "summary", label: "Özet" },
@@ -32,6 +42,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "collections", label: "Tahsilat geçmişi" },
   { id: "promises", label: "Ödeme sözleri" },
   { id: "tasks", label: "Görevler" },
+  { id: "disputes", label: "İtirazlar" },
   { id: "notes", label: "Notlar" },
 ];
 
@@ -132,8 +143,12 @@ export function CustomerDetailView({ customerId }: { customerId: number }) {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <SummaryCard label="Toplam açık bakiye" value={formatMoney(customer.open_balance)} />
-        <SummaryCard label="Gecikmiş bakiye" value={formatMoney(customer.overdue_balance)} />
+        <SummaryCard label="Normal açık bakiye" value={formatMoney(customer.open_balance)} />
+        <SummaryCard label="Gecikmiş açık bakiye" value={formatMoney(customer.overdue_balance)} />
+        <SummaryCard
+          label="İtirazlı bakiye"
+          value={formatMoney(customer.disputed_balance ?? "0")}
+        />
         <SummaryCard
           label="En eski gecikme"
           value={customer.oldest_overdue_days == null ? "—" : `${customer.oldest_overdue_days} gün`}
@@ -183,6 +198,10 @@ export function CustomerDetailView({ customerId }: { customerId: number }) {
               <h2 className="mb-3 text-sm font-semibold text-slate-900">İletişim kişileri</h2>
               <CustomerContactsPanel customerId={customer.id} />
             </section>
+            <section className="rounded-xl border border-slate-200 bg-white p-4">
+              <h2 className="mb-3 text-sm font-semibold text-slate-900">İletişim tercihleri</h2>
+              <CustomerCommunicationPanel customerId={customer.id} />
+            </section>
           </div>
           <CustomerAssistantSummary customerId={customer.id} />
           <CustomerPaymentPlanSuggestions customerId={customer.id} />
@@ -201,7 +220,17 @@ export function CustomerDetailView({ customerId }: { customerId: number }) {
 
       {tab === "collections" ? <CustomerTimeline customerId={customer.id} /> : null}
 
-      {tab !== "summary" && tab !== "notes" && tab !== "collections" ? (
+      {tab === "disputes" ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <h2 className="mb-3 text-sm font-semibold text-slate-900">İtiraz ve uyuşmazlıklar</h2>
+          <CustomerDisputesPanel customerId={customer.id} />
+        </div>
+      ) : null}
+
+      {tab !== "summary" &&
+      tab !== "notes" &&
+      tab !== "collections" &&
+      tab !== "disputes" ? (
         <EmptyState
           title="Yakında"
           description="Bu sekme ilgili modül (fatura / ödeme / tahsilat) tamamlandığında dolacak."

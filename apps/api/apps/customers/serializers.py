@@ -59,6 +59,7 @@ class CustomerSerializer(serializers.ModelSerializer):
     assigned_user_name = serializers.SerializerMethodField()
     open_balance = serializers.SerializerMethodField()
     overdue_balance = serializers.SerializerMethodField()
+    disputed_balance = serializers.SerializerMethodField()
     unallocated_payment_balance = serializers.SerializerMethodField()
     avg_delay_days = serializers.SerializerMethodField()
     oldest_overdue_days = serializers.SerializerMethodField()
@@ -92,6 +93,7 @@ class CustomerSerializer(serializers.ModelSerializer):
             "is_active",
             "open_balance",
             "overdue_balance",
+            "disputed_balance",
             "unallocated_payment_balance",
             "avg_delay_days",
             "oldest_overdue_days",
@@ -111,6 +113,7 @@ class CustomerSerializer(serializers.ModelSerializer):
             "assigned_user_name",
             "open_balance",
             "overdue_balance",
+            "disputed_balance",
             "unallocated_payment_balance",
             "avg_delay_days",
             "oldest_overdue_days",
@@ -129,6 +132,9 @@ class CustomerSerializer(serializers.ModelSerializer):
 
     def get_overdue_balance(self, obj: Customer) -> str:
         return str(self._metrics(obj)["overdue_balance"])
+
+    def get_disputed_balance(self, obj: Customer) -> str:
+        return str(self._metrics(obj)["disputed_balance"])
 
     def get_unallocated_payment_balance(self, obj: Customer) -> str:
         return str(self._metrics(obj)["unallocated_payment_balance"])

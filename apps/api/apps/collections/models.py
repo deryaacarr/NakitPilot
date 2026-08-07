@@ -256,3 +256,189 @@ class CollectionActivity(TenantModel):
 
     def __str__(self) -> str:
         return f"{self.activity_type}: {self.summary}"
+
+
+# ---------------------------------------------------------------------------
+# Disputes (NP-250 / EPIC 25)
+# ---------------------------------------------------------------------------
+
+
+class DisputeCategory(models.TextChoices):
+    INVOICE_ERROR = "INVOICE_ERROR", "Fatura hatası"
+    MISSING_DELIVERY = "MISSING_DELIVERY", "Eksik teslimat"
+    SERVICE_DISPUTE = "SERVICE_DISPUTE", "Hizmet uyuşmazlığı"
+    PRICE_DISPUTE = "PRICE_DISPUTE", "Fiyat itirazı"
+    TAX_ERROR = "TAX_ERROR", "Vergi bilgisi hatası"
+    UNAUTHORIZED_INVOICE = "UNAUTHORIZED_INVOICE", "Yetkisiz fatura"
+    DUPLICATE_INVOICE = "DUPLICATE_INVOICE", "Mükerrer fatura"
+    OTHER = "OTHER", "Diğer"
+
+
+class DisputeStatus(models.TextChoices):
+    """NP-251 dispute workflow statuses."""
+
+    OPEN = "OPEN", "Açık"
+    UNDER_REVIEW = "UNDER_REVIEW", "İncelemede"
+    WAITING_CUSTOMER = "WAITING_CUSTOMER", "Müşteri bekleniyor"
+    WAITING_INTERNAL = "WAITING_INTERNAL", "İç birim bekleniyor"
+    RESOLVED = "RESOLVED", "Çözüldü"
+    REJECTED = "REJECTED", "Reddedildi"
+    CANCELLED = "CANCELLED", "İptal"
+
+
+# Active (non-terminal) statuses — disputed amounts / automation gates
+DISPUTE_ACTIVE_STATUSES = frozenset(
+    {
+        DisputeStatus.OPEN,
+        DisputeStatus.UNDER_REVIEW,
+        DisputeStatus.WAITING_CUSTOMER,
+        DisputeStatus.WAITING_INTERNAL,
+    }
+)
+DISPUTE_TERMINAL_STATUSES = frozenset(
+    {
+        DisputeStatus.RESOLVED,
+        DisputeStatus.REJECTED,
+        DisputeStatus.CANCELLED,
+    }
+)
+
+
+class DisputeAttachmentKind(models.TextChoices):
+    """NP-253 evidence types."""
+
+    PDF = "PDF", "PDF"
+    IMAGE = "IMAGE", "Görsel"
+    DELIVERY_DOC = "DELIVERY_DOC", "Teslimat belgesi"
+    EMAIL = "EMAIL", "E-posta"
+    CONTRACT = "CONTRACT", "Sözleşme"
+
+
+class Dispute(TenantModel):
+    """Invoice/customer dispute case (NP-250 / NP-251)."""
+
+    customer = models.ForeignKey(
+        "customers.Customer",
+        on_delete=models.CASCADE,
+        related_name="disputes",
+    )
+    invoice = models.ForeignKey(
+        "invoices.Invoice",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="disputes",
+    )
+    category = models.CharField(max_length=32, choices=DisputeCategory.choices)
+    status = models.CharField(
+        max_length=32,
+        choices=DisputeStatus.choices,
+        default=DisputeStatus.OPEN,
+        db_index=True,
+    )
+    amount = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(ZERO)],
+    )
+    opened_at = models.DateTimeField(default=timezone.now)
+    assigned_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_disputes",
+    )
+    description = models.TextField(blank=True)
+    resolution_note = models.TextField(blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_disputes",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-opened_at", "-id")
+        verbose_name = "dispute"
+        verbose_name_plural = "disputes"
+        indexes = [
+            models.Index(fields=["organization", "status", "opened_at"]),
+            models.Index(fields=["organization", "customer", "status"]),
+            models.Index(fields=["organization", "invoice", "status"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"Dispute {self.id} · {self.category} ({self.status})"
+
+    @property
+    def is_open(self) -> bool:
+        return self.status in DISPUTE_ACTIVE_STATUSES
+
+
+class DisputeStatusEvent(TenantModel):
+    """Audit trail for NP-251 workflow transitions."""
+
+    dispute = models.ForeignKey(
+        Dispute,
+        on_delete=models.CASCADE,
+        related_name="status_events",
+    )
+    from_status = models.CharField(max_length=32, blank=True)
+    to_status = models.CharField(max_length=32, choices=DisputeStatus.choices)
+    note = models.TextField(blank=True)
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="dispute_status_events",
+    )
+    occurred_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ("-occurred_at", "-id")
+        verbose_name = "dispute status event"
+        verbose_name_plural = "dispute status events"
+
+
+class DisputeAttachment(TenantModel):
+    """Evidence files attached to a dispute (NP-253)."""
+
+    dispute = models.ForeignKey(
+        Dispute,
+        on_delete=models.CASCADE,
+        related_name="attachments",
+    )
+    kind = models.CharField(
+        max_length=32,
+        choices=DisputeAttachmentKind.choices,
+        default=DisputeAttachmentKind.PDF,
+    )
+    original_filename = models.CharField(max_length=255)
+    stored_path = models.CharField(max_length=512)
+    content_type = models.CharField(max_length=128, blank=True)
+    file_size = models.PositiveIntegerField(default=0)
+    notes = models.CharField(max_length=255, blank=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="dispute_attachments",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "dispute attachment"
+        verbose_name_plural = "dispute attachments"
+
+    def __str__(self) -> str:
+        return f"{self.kind}: {self.original_filename}"

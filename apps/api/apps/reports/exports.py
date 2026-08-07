@@ -24,6 +24,7 @@ FILENAME_PREFIX = {
     ReportType.OVERDUE_RECEIVABLES: "gecikmis_alacak",
     ReportType.COLLECTION_ACTIVITY: "tahsilat_aktivite",
     ReportType.CUSTOMER_RISK: "musteri_risk",
+    ReportType.DISPUTE_RESOLUTION: "itiraz_cozum",
 }
 
 
@@ -34,6 +35,10 @@ def collect_report_rows(organization, report_type: str, filters: dict[str, Any])
         return collection_activity_report(organization, filters=filters)
     if report_type == ReportType.CUSTOMER_RISK:
         return customer_risk_report(organization, filters=filters)
+    if report_type == ReportType.DISPUTE_RESOLUTION:
+        from apps.collections.dispute_report import dispute_resolution_report_rows
+
+        return dispute_resolution_report_rows(organization, filters)
     raise ValueError(f"Unknown report_type: {report_type}")
 
 

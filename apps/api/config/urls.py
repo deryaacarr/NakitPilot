@@ -23,6 +23,7 @@ urlpatterns = [
     path("api/payments/", include("apps.payments.urls")),
     path("api/collection-tasks/", include("apps.collections.urls")),
     path("api/payment-promises/", include("apps.collections.promise_urls")),
+    path("api/disputes/", include("apps.collections.dispute_urls")),
     path("api/notifications/", include("apps.notifications.urls")),
     path("api/imports/", include("apps.imports.urls")),
     path("api/integrations/", include("apps.integrations.urls")),
@@ -38,4 +39,7 @@ urlpatterns = [
     path("api/ai-usage/", include("apps.ai_usage.urls")),
     path("api/reports/", include("apps.reports.urls")),
     path("api/risk/", include("apps.risk.urls")),
+    path("api/segments/", include("apps.segments.urls")),
+    path("api/payables/", include("apps.payables.urls")),
+    path("api/billing/", include("apps.billing.urls")),
 ]

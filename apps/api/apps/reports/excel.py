@@ -41,12 +41,19 @@ HEADERS = {
         "Bozulan söz sayısı",
         "Son ödeme tarihi",
     ],
+    ReportType.DISPUTE_RESOLUTION: [
+        "Metrik",
+        "Değer",
+        "Kategori",
+        "Müşteri",
+    ],
 }
 
 SHEET_TITLES = {
     ReportType.OVERDUE_RECEIVABLES: "Gecikmiş alacak",
     ReportType.COLLECTION_ACTIVITY: "Tahsilat aktivite",
     ReportType.CUSTOMER_RISK: "Müşteri risk",
+    ReportType.DISPUTE_RESOLUTION: "İtiraz çözüm",
 }
 
 
@@ -98,6 +105,16 @@ def rows_to_workbook(report_type: str, rows: list[dict[str, Any]]) -> bytes:
                     r.get("avg_delay_days") if r.get("avg_delay_days") is not None else "",
                     r.get("broken_promise_count", 0),
                     r.get("last_payment_date", ""),
+                ]
+            )
+    elif report_type == ReportType.DISPUTE_RESOLUTION:
+        for r in rows:
+            ws.append(
+                [
+                    r.get("metric", ""),
+                    r.get("value", ""),
+                    r.get("category", ""),
+                    r.get("customer", ""),
                 ]
             )
 

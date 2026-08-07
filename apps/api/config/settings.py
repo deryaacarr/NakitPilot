@@ -71,6 +71,9 @@ INSTALLED_APPS = [
     "apps.audit",
     "apps.security",
     "apps.reports",
+    "apps.segments",
+    "apps.payables",
+    "apps.billing",
     "apps.health",
 ]
 

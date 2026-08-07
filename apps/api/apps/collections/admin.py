@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.collections.models import CollectionActivity, CollectionTask, PaymentPromise
+from apps.collections.models import CollectionActivity, CollectionTask, Dispute, PaymentPromise
 
 
 @admin.register(PaymentPromise)
@@ -37,3 +37,19 @@ class CollectionTaskAdmin(admin.ModelAdmin):
 class CollectionActivityAdmin(admin.ModelAdmin):
     list_display = ("id", "customer", "activity_type", "summary", "occurred_at", "organization")
     list_filter = ("activity_type", "organization")
+
+
+@admin.register(Dispute)
+class DisputeAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "customer",
+        "invoice",
+        "category",
+        "status",
+        "amount",
+        "opened_at",
+        "organization",
+    )
+    list_filter = ("status", "category", "organization")
+    search_fields = ("description", "customer__name", "invoice__number")

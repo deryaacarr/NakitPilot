@@ -5,6 +5,10 @@ from apps.collections.views import (
     CustomerPaymentPlanSuggestView,
     CustomerTimelineView,
 )
+from apps.customers.preference_views import (
+    CustomerCommunicationPreferenceView,
+    CustomerFrequencyCheckView,
+)
 from apps.customers.views import (
     CustomerContactDetailView,
     CustomerContactListCreateView,
@@ -21,6 +25,16 @@ from apps.risk.views import (
 urlpatterns = [
     path("", CustomerListCreateView.as_view(), name="customer-list-create"),
     path("<int:pk>/", CustomerDetailView.as_view(), name="customer-detail"),
+    path(
+        "<int:pk>/communication-preferences/",
+        CustomerCommunicationPreferenceView.as_view(),
+        name="customer-communication-preferences",
+    ),
+    path(
+        "<int:pk>/communication-frequency/",
+        CustomerFrequencyCheckView.as_view(),
+        name="customer-communication-frequency",
+    ),
     path(
         "<int:pk>/timeline/",
         CustomerTimelineView.as_view(),

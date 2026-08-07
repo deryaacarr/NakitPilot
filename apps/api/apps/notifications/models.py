@@ -24,6 +24,7 @@ class NotificationType(models.TextChoices):
     HIGH_RISK_CUSTOMER = "HIGH_RISK_CUSTOMER", "Yüksek riskli müşteri"
     IMPORT_COMPLETED = "IMPORT_COMPLETED", "İçe aktarma tamamlandı"
     IMPORT_FAILED = "IMPORT_FAILED", "İçe aktarma başarısız"
+    CASH_GAP = "CASH_GAP", "Nakit açığı"
 
 
 # Deep-link helpers for the web app
@@ -35,6 +36,7 @@ NOTIFICATION_HREF = {
     NotificationType.HIGH_RISK_CUSTOMER: "/customers/{id}",
     NotificationType.IMPORT_COMPLETED: "/imports",
     NotificationType.IMPORT_FAILED: "/imports",
+    NotificationType.CASH_GAP: "/forecast",
 }
 
 

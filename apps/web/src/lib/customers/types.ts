@@ -35,6 +35,7 @@ export type Customer = {
   is_active: boolean;
   open_balance: string;
   overdue_balance: string;
+  disputed_balance?: string;
   avg_delay_days: number | null;
   oldest_overdue_days: number | null;
   primary_contact_name: string | null;

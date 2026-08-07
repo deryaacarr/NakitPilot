@@ -13,6 +13,20 @@ from apps.messaging.views import (
     OutboundEmailListCreateView,
     OutboundEmailPreviewView,
 )
+from apps.messaging.whatsapp_views import (
+    WhatsAppBulkSendView,
+    WhatsAppClassificationOptionsView,
+    WhatsAppClassifyView,
+    WhatsAppInboundListCreateView,
+    WhatsAppOptOutListView,
+    WhatsAppOutboundDetailView,
+    WhatsAppOutboundListView,
+    WhatsAppProviderConfigView,
+    WhatsAppSendView,
+    WhatsAppStatusUpdateView,
+    WhatsAppTemplateDetailView,
+    WhatsAppTemplateListCreateView,
+)
 
 urlpatterns = [
     path("", MessageTemplateListCreateView.as_view(), name="message-template-list"),
@@ -38,6 +52,63 @@ urlpatterns = [
         "email-provider/",
         EmailProviderConfigView.as_view(),
         name="email-provider-config",
+    ),
+    # NP-242 / NP-245 WhatsApp
+    path(
+        "whatsapp/templates/",
+        WhatsAppTemplateListCreateView.as_view(),
+        name="whatsapp-template-list",
+    ),
+    path(
+        "whatsapp/templates/<int:pk>/",
+        WhatsAppTemplateDetailView.as_view(),
+        name="whatsapp-template-detail",
+    ),
+    path("whatsapp/send/", WhatsAppSendView.as_view(), name="whatsapp-send"),
+    path(
+        "whatsapp/bulk-send/",
+        WhatsAppBulkSendView.as_view(),
+        name="whatsapp-bulk-send",
+    ),
+    path(
+        "whatsapp/messages/",
+        WhatsAppOutboundListView.as_view(),
+        name="whatsapp-outbound-list",
+    ),
+    path(
+        "whatsapp/messages/<int:pk>/",
+        WhatsAppOutboundDetailView.as_view(),
+        name="whatsapp-outbound-detail",
+    ),
+    path(
+        "whatsapp/messages/<int:pk>/status/",
+        WhatsAppStatusUpdateView.as_view(),
+        name="whatsapp-status-update",
+    ),
+    path(
+        "whatsapp/inbound/",
+        WhatsAppInboundListCreateView.as_view(),
+        name="whatsapp-inbound-list",
+    ),
+    path(
+        "whatsapp/inbound/<int:pk>/classify/",
+        WhatsAppClassifyView.as_view(),
+        name="whatsapp-classify",
+    ),
+    path(
+        "whatsapp/classifications/",
+        WhatsAppClassificationOptionsView.as_view(),
+        name="whatsapp-classification-options",
+    ),
+    path(
+        "whatsapp/opt-outs/",
+        WhatsAppOptOutListView.as_view(),
+        name="whatsapp-opt-outs",
+    ),
+    path(
+        "whatsapp/provider/",
+        WhatsAppProviderConfigView.as_view(),
+        name="whatsapp-provider-config",
     ),
     path("<int:pk>/", MessageTemplateDetailView.as_view(), name="message-template-detail"),
     path(

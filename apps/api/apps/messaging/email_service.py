@@ -164,7 +164,10 @@ def create_email_draft(
     subject: str = "",
     body: str = "",
     require_approval: bool = True,
+    is_automatic: bool = False,
 ) -> OutboundEmail:
+    from apps.messaging.frequency import assert_frequency_allowed
+
     customer = Customer.objects.filter(
         pk=customer_id, organization_id=organization.id
     ).first()
@@ -180,6 +183,14 @@ def create_email_draft(
         ).first()
         if invoice is None:
             raise MessagingError("Fatura bulunamadı.", "invoice_not_found")
+
+    # NP-252: block automatic collection messages for disputed invoices
+    if is_automatic or not require_approval:
+        assert_frequency_allowed(
+            customer,
+            is_automatic=True,
+            invoice_id=invoice_id,
+        )
 
     template = None
     if template_id is not None:

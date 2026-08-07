@@ -121,3 +121,32 @@ class CustomerContact(TenantModel):
 
     def __str__(self) -> str:
         return self.full_name
+
+
+class CustomerCommunicationPreference(TenantModel):
+    """Per-customer channel and contact-window preferences (NP-243)."""
+
+    customer = models.OneToOneField(
+        Customer,
+        on_delete=models.CASCADE,
+        related_name="communication_preference",
+    )
+    email_ok = models.BooleanField(default=True)
+    whatsapp_ok = models.BooleanField(default=True)
+    sms_ok = models.BooleanField(default=True)
+    phone_ok = models.BooleanField(default=True)
+    # When True, all outreach channels are blocked.
+    no_contact_permission = models.BooleanField(default=False)
+    # Optional quiet hours window in local org/customer time (HH:MM).
+    contact_hours_start = models.TimeField(null=True, blank=True)
+    contact_hours_end = models.TimeField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "customer communication preference"
+        verbose_name_plural = "customer communication preferences"
+
+    def __str__(self) -> str:
+        return f"Prefs · customer {self.customer_id}"

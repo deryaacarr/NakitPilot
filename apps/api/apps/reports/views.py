@@ -34,6 +34,7 @@ class ReportPreviewView(TenantQuerysetMixin, APIView):
         "overdue-receivables": ReportType.OVERDUE_RECEIVABLES,
         "collection-activity": ReportType.COLLECTION_ACTIVITY,
         "customer-risk": ReportType.CUSTOMER_RISK,
+        "dispute-resolution": ReportType.DISPUTE_RESOLUTION,
     }
 
     def get(self, request, report_slug: str):
