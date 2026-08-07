@@ -176,13 +176,26 @@ def ensure_subscription(organization, *, plan_code: str = PlanCode.STARTER) -> S
     existing = get_active_subscription(organization)
     if existing:
         return existing
-    plan = SubscriptionPlan.objects.get(code=plan_code)
+    # Prefer most recent subscription even if expired (for read-only restoration UX)
     org_id = organization.pk if hasattr(organization, "pk") else organization
+    expired = (
+        Subscription.objects.filter(organization_id=org_id)
+        .select_related("plan")
+        .order_by("-created_at")
+        .first()
+    )
+    if expired and expired.status in (
+        SubscriptionStatus.EXPIRED,
+        SubscriptionStatus.CANCELLED,
+    ):
+        return expired
+    plan = SubscriptionPlan.objects.get(code=plan_code)
     return Subscription.objects.create(
         organization_id=org_id,
         plan=plan,
         status=SubscriptionStatus.TRIALING,
         seats=1,
+        card_required=False,
         trial_ends_at=timezone.now() + timedelta(days=14),
         current_period_start=timezone.now(),
         current_period_end=timezone.now() + timedelta(days=14),
@@ -225,6 +238,17 @@ def _usage_for_feature(organization, feature: str) -> int | None:
         except Exception:  # noqa: BLE001
             return 0
     return None
+
+
+def assert_writable(organization) -> None:
+    """NP-283/284 — block mutations when trial/dunning left the org read-only."""
+    from apps.billing.trial import is_read_only
+
+    if is_read_only(organization):
+        raise EntitlementDenied(
+            "Abonelik salt okunur modda (deneme veya ödeme süresi doldu).",
+            code="read_only",
+        )
 
 
 def can_use(

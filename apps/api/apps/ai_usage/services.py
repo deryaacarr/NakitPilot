@@ -254,7 +254,7 @@ def record_usage(
         cost = estimate_cost(
             model=model, input_tokens=input_tokens, output_tokens=output_tokens
         )
-    return AIUsageEvent.objects.create(
+    event = AIUsageEvent.objects.create(
         organization=organization,
         user=user,
         feature=feature,
@@ -266,6 +266,16 @@ def record_usage(
         truncated=truncated,
         metadata=metadata or {},
     )
+    try:
+        tokens = max(0, int(input_tokens)) + max(0, int(output_tokens))
+        if tokens:
+            from apps.billing.models import UsageMetric
+            from apps.billing.usage import record_usage as billing_record_usage
+
+            billing_record_usage(organization, UsageMetric.AI_TOKENS, tokens)
+    except Exception:  # noqa: BLE001
+        pass
+    return event
 
 
 def cache_key_for(

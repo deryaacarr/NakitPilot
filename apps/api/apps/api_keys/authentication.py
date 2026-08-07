@@ -44,6 +44,13 @@ class ApiKeyAuthentication(authentication.BaseAuthentication):
         # Ensure tenant helpers see the key's organization.
         request.organization = api_key.organization
         user.current_organization = api_key.organization
+        try:
+            from apps.billing.models import UsageMetric
+            from apps.billing.usage import record_usage
+
+            record_usage(api_key.organization_id, UsageMetric.API_REQUESTS, 1)
+        except Exception:  # noqa: BLE001
+            pass
         return (user, api_key)
 
     def authenticate_header(self, request):

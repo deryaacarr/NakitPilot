@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 
 import { KolayBiConnectionPanel } from "@/components/integrations/kolaybi-connection-panel";
+import { GuidancePanel } from "@/components/onboarding/guidance-panel";
 import { AIUsagePanel } from "@/components/settings/ai-usage-panel";
 import { EmailProviderPanel } from "@/components/settings/email-provider-panel";
+import { SubscriptionPanel } from "@/components/settings/subscription-panel";
 
 export const metadata: Metadata = {
   title: "Ayarlar",
@@ -14,9 +16,11 @@ export default function SettingsPage() {
       <div>
         <h1 className="font-serif text-3xl tracking-tight text-slate-900">Ayarlar</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Organizasyon entegrasyonları, e-posta/SMTP, AI maliyet kontrolü ve hesap bağlantıları.
+          Abonelik, kullanım, entegrasyonlar, e-posta/SMTP ve AI maliyet kontrolü.
         </p>
       </div>
+      <SubscriptionPanel />
+      <GuidancePanel />
       <EmailProviderPanel />
       <AIUsagePanel />
       <KolayBiConnectionPanel />

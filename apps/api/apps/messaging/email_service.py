@@ -403,6 +403,13 @@ def send_outbound_email_now(email_id: int) -> OutboundEmail:
         email.provider = (config.provider if config else EmailProviderType.CONSOLE)
         email.provider_message_id = message_id
         email.error_message = ""
+        try:
+            from apps.billing.models import UsageMetric
+            from apps.billing.usage import record_usage
+
+            record_usage(email.organization_id, UsageMetric.EMAILS_SENT, 1)
+        except Exception:  # noqa: BLE001
+            pass
         email.save(
             update_fields=[
                 "status",

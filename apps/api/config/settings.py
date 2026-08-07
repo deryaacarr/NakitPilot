@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "apps.segments",
     "apps.payables",
     "apps.billing",
+    "apps.onboarding",
     "apps.health",
 ]
 

@@ -121,6 +121,9 @@ def sync_customers_for_connection(
         max_remote_updated_at=max_remote,
         success=stats["failed"] == 0 or stats["created"] + stats["updated"] > 0,
     )
+    from apps.billing.usage import meter_integration_sync
+
+    meter_integration_sync(connection.organization_id)
     return stats
 
 

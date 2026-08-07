@@ -378,6 +378,13 @@ def send_whatsapp_now(message_id: int) -> OutboundWhatsApp:
             ]
         )
         _record_status(msg, WhatsAppMessageStatus.SENT, meta={"provider_message_id": provider_id})
+        try:
+            from apps.billing.models import UsageMetric
+            from apps.billing.usage import record_usage
+
+            record_usage(msg.organization_id, UsageMetric.WHATSAPP_SENT, 1)
+        except Exception:  # noqa: BLE001
+            pass
         if msg.activity_id is None:
             activity = CollectionActivity.objects.create(
                 organization_id=msg.organization_id,

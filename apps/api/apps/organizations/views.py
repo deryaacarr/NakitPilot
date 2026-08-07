@@ -42,6 +42,21 @@ class OrganizationListCreateView(generics.ListCreateAPIView):
             role=Role.OWNER,
             is_active=True,
         )
+        # NP-283 / NP-294 — start trial + analytics (no PII)
+        try:
+            from apps.billing.subscription_service import ensure_subscription
+
+            ensure_subscription(organization)
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            from apps.onboarding.analytics import track_event
+            from apps.onboarding.progress import ensure_state
+
+            ensure_state(organization)
+            track_event(organization, "organization_created", {"source": "api"})
+        except Exception:  # noqa: BLE001
+            pass
 
 
 class OrganizationDetailView(generics.RetrieveUpdateAPIView):

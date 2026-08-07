@@ -17,6 +17,7 @@ class RiskStatus(models.TextChoices):
 class CustomerSource(models.TextChoices):
     MANUAL = "MANUAL", "Manual"
     KOLAYBI = "KOLAYBI", "KolayBi"
+    SAMPLE = "SAMPLE", "Örnek veri"
 
 
 class Customer(TenantModel):
@@ -73,6 +74,8 @@ class Customer(TenantModel):
     last_synced_at = models.DateTimeField(null=True, blank=True)
     last_contact_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    # NP-291 — sample/demo rows must be visually & queryably distinct from real data
+    is_sample = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -141,6 +141,9 @@ def sync_payments_for_connection(
         max_remote_updated_at=max_remote,
         success=True,
     )
+    from apps.billing.usage import meter_integration_sync
+
+    meter_integration_sync(connection.organization_id)
     return stats
 
 

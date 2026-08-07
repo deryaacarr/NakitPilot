@@ -71,9 +71,31 @@ class Subscription(TenantModel):
     )
     seats = models.PositiveIntegerField(default=1)
     trial_ends_at = models.DateTimeField(null=True, blank=True)
+    # NP-283 — trial does not require a card
+    card_required = models.BooleanField(default=False)
     current_period_start = models.DateTimeField(default=timezone.now)
     current_period_end = models.DateTimeField(null=True, blank=True)
     cancel_at_period_end = models.BooleanField(default=False)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    # NP-283 / NP-284 — after trial expiry or dunning exhaustion
+    read_only = models.BooleanField(default=False)
+    grace_ends_at = models.DateTimeField(null=True, blank=True)
+    dunning_step = models.PositiveSmallIntegerField(default=0)
+    next_retry_at = models.DateTimeField(null=True, blank=True)
+    # NP-285 — scheduled downgrade
+    scheduled_plan = models.ForeignKey(
+        SubscriptionPlan,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="scheduled_subscriptions",
+    )
+    scheduled_plan_at = models.DateTimeField(null=True, blank=True)
+    # NP-285 — payment method (tokenized; no full PAN stored)
+    payment_provider = models.CharField(max_length=32, blank=True, default="")
+    payment_provider_customer_id = models.CharField(max_length=128, blank=True, default="")
+    payment_method_brand = models.CharField(max_length=32, blank=True, default="")
+    payment_method_last4 = models.CharField(max_length=4, blank=True, default="")
     coupon = models.ForeignKey(
         "billing.Coupon",
         on_delete=models.SET_NULL,
@@ -115,22 +137,42 @@ class SubscriptionItem(TenantModel):
         ordering = ("id",)
 
 
+class UsageMetric(models.TextChoices):
+    """NP-282 — metered usage dimensions."""
+
+    ACTIVE_CUSTOMERS = "active_customers", "Aktif müşteri"
+    MONTHLY_INVOICES = "monthly_invoices", "Aylık işlenen fatura"
+    API_REQUESTS = "api_requests", "API isteği"
+    AI_TOKENS = "ai_tokens", "AI token"
+    EMAILS_SENT = "emails_sent", "Gönderilen e-posta"
+    WHATSAPP_SENT = "whatsapp_sent", "Gönderilen WhatsApp"
+    FILE_STORAGE_BYTES = "file_storage_bytes", "Dosya depolama (byte)"
+    INTEGRATION_SYNCS = "integration_syncs", "Entegrasyon senkronizasyonu"
+
+
 class UsageRecord(TenantModel):
     subscription = models.ForeignKey(
         Subscription,
         on_delete=models.CASCADE,
         related_name="usage_records",
     )
-    metric = models.CharField(max_length=64)  # e.g. ai_tokens, invoice_syncs
-    quantity = models.PositiveIntegerField(default=0)
+    metric = models.CharField(max_length=64)  # UsageMetric values
+    quantity = models.PositiveBigIntegerField(default=0)
     period_start = models.DateField()
     period_end = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ("-period_start",)
         indexes = [
             models.Index(fields=["organization", "metric", "period_start"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "subscription", "metric", "period_start", "period_end"),
+                name="billing_usage_uniq_org_sub_metric_period",
+            )
         ]
 
 
@@ -162,6 +204,8 @@ class BillingInvoice(TenantModel):
     period_end = models.DateField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
     paid_at = models.DateTimeField(null=True, blank=True)
+    pdf_path = models.CharField(max_length=512, blank=True, default="")
+    line_items = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

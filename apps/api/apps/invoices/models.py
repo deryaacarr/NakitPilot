@@ -23,6 +23,7 @@ class InvoiceStatus(models.TextChoices):
 class InvoiceSource(models.TextChoices):
     MANUAL = "MANUAL", "Manual"
     KOLAYBI = "KOLAYBI", "KolayBi"
+    SAMPLE = "SAMPLE", "Örnek veri"
 
 
 class Invoice(TenantModel):
@@ -82,6 +83,8 @@ class Invoice(TenantModel):
     )
     external_id = models.CharField(max_length=128, blank=True, default="", db_index=True)
     last_synced_at = models.DateTimeField(null=True, blank=True)
+    # NP-291 — sample/demo invoices
+    is_sample = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
