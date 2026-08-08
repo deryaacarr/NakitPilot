@@ -59,6 +59,8 @@ class Role(models.TextChoices):
     FINANCE_MANAGER = "FINANCE_MANAGER", "Finance Manager"
     COLLECTION_AGENT = "COLLECTION_AGENT", "Collection Agent"
     VIEWER = "VIEWER", "Viewer"
+    # NP-353 — external lawyer portal (assigned cases only)
+    EXTERNAL_LAWYER = "EXTERNAL_LAWYER", "External Lawyer"
 
 
 class Membership(models.Model):

@@ -5,6 +5,7 @@ import type { CollectionTask, CompleteTaskPayload, TimelineEvent, TodayBoard } f
 export type CallPrepPayload = {
   customer_id: number;
   customer_name: string;
+  customer_phone?: string;
   task_id: number | null;
   as_of: string;
   talking_points: string[];

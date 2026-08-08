@@ -119,3 +119,77 @@ class DashboardAlertMarkAllReadView(TenantQuerysetMixin, APIView):
             .update(is_read=True)
         )
         return Response({"updated": updated})
+
+
+class PushSubscribeView(APIView):
+    """POST /api/notifications/push/subscribe/ — NP-344."""
+
+    permission_classes = [
+        IsAuthenticated,
+        RequireTenantContextPermission,
+        HasOrganizationPermission,
+    ]
+    read_permission = Permission.VIEW_REPORTS
+    write_permission = Permission.VIEW_REPORTS
+
+    def post(self, request):
+        from apps.notifications.models import PushSubscription
+        from apps.organizations.tenancy import get_request_organization
+
+        org = get_request_organization(request)
+        endpoint = (request.data.get("endpoint") or "").strip()
+        keys = request.data.get("keys") or {}
+        p256dh = (keys.get("p256dh") or request.data.get("p256dh") or "").strip()
+        auth = (keys.get("auth") or request.data.get("auth") or "").strip()
+        if not endpoint or not p256dh or not auth:
+            return Response(
+                {"detail": "endpoint, keys.p256dh ve keys.auth zorunlu."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        sub, _created = PushSubscription.objects.update_or_create(
+            organization=org,
+            endpoint=endpoint,
+            defaults={
+                "user": request.user,
+                "p256dh": p256dh,
+                "auth": auth,
+                "user_agent": (request.META.get("HTTP_USER_AGENT") or "")[:255],
+                "is_active": True,
+            },
+        )
+        return Response({"id": sub.id, "endpoint": sub.endpoint, "active": sub.is_active})
+
+
+class PushUnsubscribeView(APIView):
+    permission_classes = [
+        IsAuthenticated,
+        RequireTenantContextPermission,
+        HasOrganizationPermission,
+    ]
+    write_permission = Permission.VIEW_REPORTS
+    read_permission = Permission.VIEW_REPORTS
+
+    def post(self, request):
+        from apps.notifications.models import PushSubscription
+        from apps.organizations.tenancy import get_request_organization
+
+        org = get_request_organization(request)
+        endpoint = (request.data.get("endpoint") or "").strip()
+        updated = PushSubscription.objects.filter(
+            organization=org, user=request.user, endpoint=endpoint
+        ).update(is_active=False)
+        return Response({"updated": updated})
+
+
+class PushVapidPublicKeyView(APIView):
+    permission_classes = [
+        IsAuthenticated,
+        RequireTenantContextPermission,
+        HasOrganizationPermission,
+    ]
+    read_permission = Permission.VIEW_REPORTS
+
+    def get(self, request):
+        from apps.notifications.push import vapid_public_key
+
+        return Response({"public_key": vapid_public_key()})

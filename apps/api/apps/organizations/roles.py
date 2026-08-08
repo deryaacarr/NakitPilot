@@ -15,6 +15,8 @@ class Permission(StrEnum):
     ADD_PAYMENT = "add_payment"
     VIEW_REPORTS = "view_reports"
     MANAGE_SETTINGS = "manage_settings"
+    # NP-353 / EPIC 35
+    MANAGE_LEGAL = "manage_legal"
 
 
 ROLE_PERMISSIONS: dict[str, frozenset[Permission]] = {
@@ -27,6 +29,7 @@ ROLE_PERMISSIONS: dict[str, frozenset[Permission]] = {
             Permission.MANAGE_COLLECTION_TASK,
             Permission.ADD_PAYMENT,
             Permission.VIEW_REPORTS,
+            Permission.MANAGE_LEGAL,
         }
     ),
     Role.COLLECTION_AGENT: frozenset(
@@ -38,6 +41,11 @@ ROLE_PERMISSIONS: dict[str, frozenset[Permission]] = {
     Role.VIEWER: frozenset(
         {
             Permission.VIEW_REPORTS,
+        }
+    ),
+    Role.EXTERNAL_LAWYER: frozenset(
+        {
+            Permission.MANAGE_LEGAL,
         }
     ),
 }

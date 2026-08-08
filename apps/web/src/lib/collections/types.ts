@@ -31,6 +31,7 @@ export type CollectionTask = {
   customer: number;
   customer_name: string;
   customer_risk_status: string;
+  customer_phone?: string | null;
   invoice: number | null;
   invoice_number?: string | null;
   task_type: string;

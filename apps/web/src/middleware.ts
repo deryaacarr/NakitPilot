@@ -12,6 +12,8 @@ const PROTECTED_PREFIXES = [
   "/messages",
   "/forecast",
   "/imports",
+  "/legal",
+  "/offline",
 ] as const;
 
 function isProtectedPath(pathname: string): boolean {
@@ -57,5 +59,8 @@ export const config = {
     "/forecast/:path*",
     "/imports",
     "/imports/:path*",
+    "/legal",
+    "/legal/:path*",
+    "/offline",
   ],
 };

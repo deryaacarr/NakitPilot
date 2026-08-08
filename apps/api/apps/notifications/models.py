@@ -15,13 +15,15 @@ class AlertSeverity(models.TextChoices):
 
 
 class NotificationType(models.TextChoices):
-    """NP-140 typed in-app notifications."""
+    """NP-140 typed in-app notifications (+ NP-344 field push types)."""
 
     TASK_DUE = "TASK_DUE", "Görev vadesi"
     TASK_OVERDUE = "TASK_OVERDUE", "Gecikmiş görev"
+    TASK_ASSIGNED = "TASK_ASSIGNED", "Atanan görev"
     PROMISE_DUE = "PROMISE_DUE", "Ödeme sözü vadesi"
     PROMISE_BROKEN = "PROMISE_BROKEN", "Bozulan ödeme sözü"
     HIGH_RISK_CUSTOMER = "HIGH_RISK_CUSTOMER", "Yüksek riskli müşteri"
+    CRITICAL_CUSTOMER = "CRITICAL_CUSTOMER", "Kritik müşteri"
     IMPORT_COMPLETED = "IMPORT_COMPLETED", "İçe aktarma tamamlandı"
     IMPORT_FAILED = "IMPORT_FAILED", "İçe aktarma başarısız"
     CASH_GAP = "CASH_GAP", "Nakit açığı"
@@ -29,11 +31,13 @@ class NotificationType(models.TextChoices):
 
 # Deep-link helpers for the web app
 NOTIFICATION_HREF = {
-    NotificationType.TASK_DUE: "/collections",
-    NotificationType.TASK_OVERDUE: "/collections",
+    NotificationType.TASK_DUE: "/collections/field",
+    NotificationType.TASK_OVERDUE: "/collections/field",
+    NotificationType.TASK_ASSIGNED: "/collections/field",
     NotificationType.PROMISE_DUE: "/promises",
     NotificationType.PROMISE_BROKEN: "/promises",
     NotificationType.HIGH_RISK_CUSTOMER: "/customers/{id}",
+    NotificationType.CRITICAL_CUSTOMER: "/customers/{id}",
     NotificationType.IMPORT_COMPLETED: "/imports",
     NotificationType.IMPORT_FAILED: "/imports",
     NotificationType.CASH_GAP: "/forecast",
@@ -94,8 +98,9 @@ def resolve_notification_href(
     if notification_type in {
         NotificationType.TASK_DUE,
         NotificationType.TASK_OVERDUE,
+        NotificationType.TASK_ASSIGNED,
     } and entity_id != "":
-        return f"/collections?task={entity_id}"
+        return f"/collections/field?task={entity_id}"
     if notification_type in {
         NotificationType.PROMISE_DUE,
         NotificationType.PROMISE_BROKEN,
@@ -127,7 +132,7 @@ def create_dashboard_alert(
     link = href or resolve_notification_href(
         ntype, entity_type=entity_type, entity_id=entity_id
     )
-    return DashboardAlert.objects.create(
+    alert = DashboardAlert.objects.create(
         organization=organization,
         title=title[:255],
         body=body,
@@ -139,3 +144,62 @@ def create_dashboard_alert(
         href=link[:255],
         created_for=created_for,
     )
+    # NP-344 — mirror critical field alerts to web push when subscribed
+    if ntype in {
+        NotificationType.TASK_DUE,
+        NotificationType.TASK_OVERDUE,
+        NotificationType.TASK_ASSIGNED,
+        NotificationType.PROMISE_BROKEN,
+        NotificationType.HIGH_RISK_CUSTOMER,
+        NotificationType.CRITICAL_CUSTOMER,
+    }:
+        try:
+            from apps.notifications.push import enqueue_web_push
+
+            enqueue_web_push(
+                organization=organization,
+                user=created_for,
+                title=alert.title,
+                body=alert.body,
+                href=alert.href,
+                tag=ntype or "nakitpilot",
+                data={
+                    "notification_type": ntype,
+                    "entity_type": entity_type,
+                    "entity_id": str(entity_id) if entity_id != "" else "",
+                },
+            )
+        except Exception:  # noqa: BLE001 — never fail alert creation on push
+            pass
+    return alert
+
+
+class PushSubscription(TenantModel):
+    """NP-344 — Web Push subscription endpoint."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="push_subscriptions",
+    )
+    endpoint = models.URLField(max_length=2048)
+    p256dh = models.CharField(max_length=255)
+    auth = models.CharField(max_length=255)
+    user_agent = models.CharField(max_length=255, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at",)
+        verbose_name = "push subscription"
+        verbose_name_plural = "push subscriptions"
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "endpoint"),
+                name="notifications_push_endpoint_uniq",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"PushSubscription<{self.user_id}>"

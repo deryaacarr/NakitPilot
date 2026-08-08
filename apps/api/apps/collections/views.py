@@ -464,3 +464,32 @@ class CustomerPaymentPlanAcceptView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return Response(result, status=status.HTTP_201_CREATED)
+
+
+class CollectionTaskOfflineSyncView(APIView):
+    """POST /api/collection-tasks/offline-sync/ — NP-342."""
+
+    permission_classes = [
+        IsAuthenticated,
+        RequireTenantContextPermission,
+        HasOrganizationPermission,
+    ]
+    read_permission = Permission.VIEW_REPORTS
+    write_permission = Permission.MANAGE_COLLECTION_TASK
+
+    def post(self, request):
+        from apps.collections.offline_sync import sync_offline_batch
+
+        organization = get_request_organization(request)
+        items = request.data.get("items") or []
+        if not isinstance(items, list):
+            return Response(
+                {"detail": "items bir dizi olmalı."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        result = sync_offline_batch(
+            organization=organization,
+            user=request.user,
+            items=items,
+        )
+        return Response(result)

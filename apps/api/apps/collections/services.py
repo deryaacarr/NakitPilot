@@ -498,6 +498,24 @@ def assign_tasks(
             "task_ids": task_ids,
         },
     )
+    # NP-344 — notify assignee
+    if updated and assigned_to is not None:
+        from apps.notifications.models import (
+            AlertSeverity,
+            NotificationType,
+            create_dashboard_alert,
+        )
+
+        create_dashboard_alert(
+            organization=organization,
+            title="Size yeni tahsilat görevi atandı",
+            body=f"{updated} görev size atandı.",
+            severity=AlertSeverity.INFO,
+            notification_type=NotificationType.TASK_ASSIGNED,
+            entity_type="CollectionTask",
+            entity_id=task_ids[0] if task_ids else "",
+            created_for=assigned_to,
+        )
     return {"updated": updated, "warning": warning, "assigned_to": assigned_to.id}
 
 

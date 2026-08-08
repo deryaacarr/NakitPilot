@@ -4,6 +4,9 @@ from apps.notifications.views import (
     DashboardAlertListView,
     DashboardAlertMarkAllReadView,
     DashboardAlertMarkReadView,
+    PushSubscribeView,
+    PushUnsubscribeView,
+    PushVapidPublicKeyView,
 )
 
 urlpatterns = [
@@ -18,4 +21,7 @@ urlpatterns = [
         DashboardAlertMarkReadView.as_view(),
         name="dashboard-alert-mark-read",
     ),
+    path("push/subscribe/", PushSubscribeView.as_view(), name="push-subscribe"),
+    path("push/unsubscribe/", PushUnsubscribeView.as_view(), name="push-unsubscribe"),
+    path("push/vapid-public-key/", PushVapidPublicKeyView.as_view(), name="push-vapid-key"),
 ]

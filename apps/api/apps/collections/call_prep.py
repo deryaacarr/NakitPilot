@@ -302,9 +302,18 @@ def build_call_preparation(
     elif plan is not None:
         talking_points.append(f"Önerilen ödeme planı: {plan['label']}")
 
+    primary_phone = (
+        customer.contacts.filter(is_primary=True)
+        .exclude(phone="")
+        .values_list("phone", flat=True)
+        .first()
+    )
+    customer_phone = (primary_phone or customer.phone or "").strip()
+
     return {
         "customer_id": customer.id,
         "customer_name": customer.name,
+        "customer_phone": customer_phone,
         "task_id": task.id if task else None,
         "as_of": today.isoformat(),
         "talking_points": talking_points,

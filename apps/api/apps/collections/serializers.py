@@ -26,6 +26,7 @@ User = get_user_model()
 class CollectionTaskSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source="customer.name", read_only=True)
     customer_risk_status = serializers.CharField(source="customer.risk_status", read_only=True)
+    customer_phone = serializers.SerializerMethodField()
     assigned_to_email = serializers.EmailField(source="assigned_to.email", read_only=True)
     assigned_to_name = serializers.SerializerMethodField()
     overdue_balance = serializers.SerializerMethodField()
@@ -42,6 +43,7 @@ class CollectionTaskSerializer(serializers.ModelSerializer):
             "customer",
             "customer_name",
             "customer_risk_status",
+            "customer_phone",
             "invoice",
             "invoice_number",
             "related_promise",
@@ -82,6 +84,7 @@ class CollectionTaskSerializer(serializers.ModelSerializer):
             "updated_at",
             "customer_name",
             "customer_risk_status",
+            "customer_phone",
             "assigned_to_email",
             "assigned_to_name",
             "overdue_balance",
@@ -90,6 +93,15 @@ class CollectionTaskSerializer(serializers.ModelSerializer):
             "payment_promise",
             "invoice_number",
         )
+
+    def get_customer_phone(self, obj: CollectionTask) -> str:
+        primary = (
+            obj.customer.contacts.filter(is_primary=True)
+            .exclude(phone="")
+            .values_list("phone", flat=True)
+            .first()
+        )
+        return (primary or obj.customer.phone or "").strip()
 
     def get_assigned_to_name(self, obj: CollectionTask) -> str | None:
         user = obj.assigned_to
