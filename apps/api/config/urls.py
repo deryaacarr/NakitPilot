@@ -46,4 +46,5 @@ urlpatterns = [
     path("api/governance/", include("apps.governance.urls")),
     path("api/ops/", include("apps.ops.urls")),
     path("api/legal/", include("apps.legal.urls")),
+    path("api/platform/", include("apps.platform.urls")),
 ]

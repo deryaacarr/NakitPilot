@@ -93,6 +93,27 @@ class LegalCaseListCreateView(TenantQuerysetMixin, generics.ListCreateAPIView):
                 {"detail": "Avukat yeni dosya oluşturamaz."},
                 status=status.HTTP_403_FORBIDDEN,
             )
+        # NP-362 — legal_module feature flag (only enforced when a flag row exists)
+        try:
+            from apps.platform.flags import is_feature_enabled
+            from apps.platform.models import FeatureFlag, FeatureFlagKey
+
+            org = get_request_organization(request)
+            if FeatureFlag.objects.filter(key=FeatureFlagKey.LEGAL_MODULE).exists():
+                if not is_feature_enabled(
+                    FeatureFlagKey.LEGAL_MODULE,
+                    organization=org,
+                    user=request.user,
+                ):
+                    return Response(
+                        {
+                            "detail": "Hukuki modül bu organizasyon için kapalı.",
+                            "code": "feature_disabled",
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+        except Exception:
+            pass
         ser = LegalCaseCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         org = get_request_organization(request)

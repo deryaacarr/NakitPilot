@@ -30,6 +30,13 @@ JWT_SIGNING_KEY = os.getenv("JWT_SIGNING_KEY") or SECRET_KEY
 
 DEBUG = env_bool("DEBUG", env_bool("DJANGO_DEBUG", True))
 
+# NP-362 — feature flag environment dimension
+NAKITPILOT_ENV = (
+    os.getenv("NAKITPILOT_ENV")
+    or os.getenv("SENTRY_ENVIRONMENT")
+    or ("development" if DEBUG else "production")
+).lower()
+
 ALLOWED_HOSTS = env_list(
     "ALLOWED_HOSTS",
     os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1"),
@@ -78,6 +85,7 @@ INSTALLED_APPS = [
     "apps.governance",
     "apps.ops",
     "apps.legal",
+    "apps.platform",
     "apps.health",
 ]
 
@@ -90,6 +98,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "apps.organizations.middleware.TenantMiddleware",
+    "apps.platform.middleware.PlatformGuardMiddleware",
     "apps.ops.middleware.ObservabilityMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
