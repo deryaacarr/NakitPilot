@@ -23,10 +23,10 @@ type ToastContextValue = {
 const ToastContext = createContext<ToastContextValue | null>(null);
 
 const toneClass: Record<ToastTone, string> = {
-  default: "border-slate-200 bg-white text-slate-900",
-  success: "border-teal-200 bg-teal-50 text-teal-950",
-  error: "border-red-200 bg-red-50 text-red-900",
-  warning: "border-amber-200 bg-amber-50 text-amber-950",
+  default: "border-border-default bg-surface-primary text-foreground",
+  success: "border-success/30 bg-success-soft text-success-foreground",
+  error: "border-danger/30 bg-danger-soft text-danger-foreground",
+  warning: "border-warning/30 bg-warning-soft text-warning-foreground",
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -62,7 +62,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={item.id}
             role="status"
             className={cn(
-              "pointer-events-auto rounded-xl border px-4 py-3 shadow-lg",
+              "pointer-events-auto rounded-[var(--radius-lg)] border px-4 py-3 shadow-[var(--shadow-md)]",
               toneClass[item.tone ?? "default"],
             )}
           >

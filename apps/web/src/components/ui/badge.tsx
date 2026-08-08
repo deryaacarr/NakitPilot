@@ -1,6 +1,7 @@
 import { cn } from "@/lib/cn";
+import { SEMANTIC_SOFT_CLASS, type SemanticTone } from "@/lib/design/semantic";
 
-export type BadgeTone = "neutral" | "success" | "warning" | "danger" | "brand";
+export type BadgeTone = SemanticTone | "brand";
 
 export type BadgeProps = {
   children: React.ReactNode;
@@ -9,19 +10,18 @@ export type BadgeProps = {
 };
 
 const toneClass: Record<BadgeTone, string> = {
-  neutral: "bg-slate-100 text-slate-700",
-  success: "bg-emerald-100 text-emerald-800",
-  warning: "bg-amber-100 text-amber-900",
-  danger: "bg-red-100 text-red-800",
-  brand: "bg-brand/15 text-brand",
+  ...SEMANTIC_SOFT_CLASS,
+  brand: "bg-primary/15 text-primary",
+  // Map legacy alias used in older call sites
+  // success/warning/danger/neutral already covered
 };
 
 export function Badge({ children, tone = "neutral", className }: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold",
-        toneClass[tone],
+        "inline-flex items-center rounded-[var(--radius-md)] px-2 py-0.5 text-xs font-semibold",
+        toneClass[tone] ?? SEMANTIC_SOFT_CLASS.neutral,
         className,
       )}
     >

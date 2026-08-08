@@ -1,23 +1,70 @@
 @import "tailwindcss";
+@import "../styles/tokens.css";
 
-:root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --brand: #0f766e;
-  --brand-foreground: #f0fdfa;
-}
-
+/* Bridge --np-* primitives → Tailwind utilities */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-brand: var(--brand);
-  --color-brand-foreground: var(--brand-foreground);
-  --font-sans: var(--font-manrope);
-  --font-serif: var(--font-source-serif);
+  --color-brand: var(--np-primary);
+  --color-brand-foreground: var(--np-primary-foreground);
+
+  --color-primary: var(--np-primary);
+  --color-primary-foreground: var(--np-primary-foreground);
+  --color-secondary: var(--np-secondary);
+  --color-secondary-foreground: var(--np-secondary-foreground);
+
+  --color-success: var(--np-success);
+  --color-success-soft: var(--np-success-soft);
+  --color-success-foreground: var(--np-success-foreground);
+  --color-info: var(--np-info);
+  --color-info-soft: var(--np-info-soft);
+  --color-info-foreground: var(--np-info-foreground);
+  --color-warning: var(--np-warning);
+  --color-warning-soft: var(--np-warning-soft);
+  --color-warning-foreground: var(--np-warning-foreground);
+  --color-danger: var(--np-danger);
+  --color-danger-soft: var(--np-danger-soft);
+  --color-danger-foreground: var(--np-danger-foreground);
+  --color-analysis: var(--np-analysis);
+  --color-analysis-soft: var(--np-analysis-soft);
+  --color-analysis-foreground: var(--np-analysis-foreground);
+  --color-neutral: var(--np-neutral);
+  --color-neutral-soft: var(--np-neutral-soft);
+  --color-neutral-foreground: var(--np-neutral-foreground);
+
+  --color-surface-primary: var(--surface-primary);
+  --color-surface-secondary: var(--surface-secondary);
+  --color-surface-tertiary: var(--surface-tertiary);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+  --color-muted: var(--foreground-muted);
+  --color-subtle: var(--foreground-subtle);
+
+  --font-sans: var(--np-font-sans);
+  --font-serif: var(--np-font-serif);
+  --font-mono: var(--np-font-mono);
+
+  --radius-sm: var(--np-radius-sm);
+  --radius-md: var(--np-radius-md);
+  --radius-lg: var(--np-radius-lg);
+  --radius-xl: var(--np-radius-xl);
+
+  --shadow-sm: var(--np-shadow-sm);
+  --shadow-md: var(--np-shadow-md);
+  --shadow-lg: var(--np-shadow-lg);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-manrope), system-ui, sans-serif;
+  font-family: var(--np-font-sans);
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
+}
+
+.tabular-nums,
+table.data-table,
+[data-tabular="true"] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }

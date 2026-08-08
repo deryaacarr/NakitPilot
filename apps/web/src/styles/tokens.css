@@ -1,0 +1,290 @@
+/**
+ * NakitPilot design tokens — EPIC 37 (NP-370…373)
+ * Single source of truth for color, type, space, radius, shadow.
+ * Light: :root | Dark: html.dark (or [data-theme="dark"])
+ *
+ * Visual character: institutional · trustworthy · finance-first · calm · data-clear
+ *
+ * Naming: primitives use --np-* ; semantic aliases (--color-*, --surface-*)
+ * are defined here for direct CSS usage. Tailwind maps --np-* via globals.css.
+ */
+
+/* ---------------------------------------------------------------------------
+ * NP-370 / NP-371 / NP-373 — Light theme
+ * --------------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  /* Brand */
+  --np-primary: #0b5f6e;
+  --np-primary-hover: #094c58;
+  --np-primary-foreground: #f2fafb;
+  --np-secondary: #3d5a6c;
+  --np-secondary-foreground: #f4f7f9;
+
+  /* Financial semantics (NP-371) — one meaning per color */
+  --np-success: #1f7a4d; /* green → collected / low risk */
+  --np-success-soft: #e7f5ee;
+  --np-success-foreground: #0f3d26;
+
+  --np-info: #1d5f9c; /* blue → informational / normal */
+  --np-info-soft: #e8f1f9;
+  --np-info-foreground: #0f3354;
+
+  --np-warning: #c56a17; /* orange → upcoming due / medium risk */
+  --np-warning-soft: #fef3e6;
+  --np-warning-foreground: #6b3708;
+
+  --np-danger: #c0392b; /* red → overdue / critical risk */
+  --np-danger-soft: #fdecea;
+  --np-danger-foreground: #6e1c15;
+
+  --np-analysis: #6b4ea3; /* purple → forecast / AI / analysis */
+  --np-analysis-soft: #f1ecf8;
+  --np-analysis-foreground: #3a2860;
+
+  --np-neutral: #64748b; /* gray → passive / completed / neutral */
+  --np-neutral-soft: #f1f5f9;
+  --np-neutral-foreground: #334155;
+
+  /* Surfaces & borders */
+  --surface-primary: #ffffff;
+  --surface-secondary: #f4f7f9;
+  --surface-tertiary: #e8eef2;
+  --surface-inverse: #0f1c24;
+  --background: var(--surface-secondary);
+  --foreground: #0f1c24;
+  --foreground-muted: #5b6b76;
+  --foreground-subtle: #8494a0;
+
+  --border-default: #d5dee5;
+  --border-strong: #b7c4ce;
+  --border-focus: var(--np-primary);
+
+  /* Semantic color aliases (CSS var() consumers) */
+  --color-primary: var(--np-primary);
+  --color-primary-hover: var(--np-primary-hover);
+  --color-primary-foreground: var(--np-primary-foreground);
+  --color-secondary: var(--np-secondary);
+  --color-secondary-foreground: var(--np-secondary-foreground);
+  --color-success: var(--np-success);
+  --color-success-soft: var(--np-success-soft);
+  --color-success-foreground: var(--np-success-foreground);
+  --color-info: var(--np-info);
+  --color-info-soft: var(--np-info-soft);
+  --color-info-foreground: var(--np-info-foreground);
+  --color-warning: var(--np-warning);
+  --color-warning-soft: var(--np-warning-soft);
+  --color-warning-foreground: var(--np-warning-foreground);
+  --color-danger: var(--np-danger);
+  --color-danger-soft: var(--np-danger-soft);
+  --color-danger-foreground: var(--np-danger-foreground);
+  --color-analysis: var(--np-analysis);
+  --color-analysis-soft: var(--np-analysis-soft);
+  --color-analysis-foreground: var(--np-analysis-foreground);
+  --color-neutral: var(--np-neutral);
+  --color-neutral-soft: var(--np-neutral-soft);
+  --color-neutral-foreground: var(--np-neutral-foreground);
+
+  /* Legacy aliases */
+  --brand: var(--np-primary);
+  --brand-foreground: var(--np-primary-foreground);
+
+  /* NP-373 — spacing (4px base) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* Radius */
+  --np-radius-sm: 0.375rem;
+  --np-radius-md: 0.5rem;
+  --np-radius-lg: 0.75rem;
+  --np-radius-xl: 1rem;
+  --np-radius-full: 9999px;
+  --radius-sm: var(--np-radius-sm);
+  --radius-md: var(--np-radius-md);
+  --radius-lg: var(--np-radius-lg);
+  --radius-xl: var(--np-radius-xl);
+  --radius-full: var(--np-radius-full);
+
+  /* Shadow */
+  --np-shadow-sm: 0 1px 2px rgb(15 28 36 / 0.06);
+  --np-shadow-md: 0 4px 12px rgb(15 28 36 / 0.08);
+  --np-shadow-lg: 0 12px 28px rgb(15 28 36 / 0.12);
+  --shadow-sm: var(--np-shadow-sm);
+  --shadow-md: var(--np-shadow-md);
+  --shadow-lg: var(--np-shadow-lg);
+
+  /* Control sizes */
+  --control-height-sm: 2rem;
+  --control-height-md: 2.5rem;
+  --control-height-lg: 2.75rem;
+
+  /* NP-372 — typography */
+  --np-font-sans: var(--font-manrope), "Segoe UI", system-ui, sans-serif;
+  --np-font-serif: var(--font-source-serif), "Iowan Old Style", Georgia, serif;
+  --np-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-sans: var(--np-font-sans);
+  --font-serif: var(--np-font-serif);
+  --font-mono: var(--np-font-mono);
+
+  --text-page-title: 1.875rem;
+  --text-section-title: 1.375rem;
+  --text-card-title: 0.9375rem;
+  --text-body: 0.875rem;
+  --text-table: 0.8125rem;
+  --text-metric: 1.75rem;
+  --text-helper: 0.75rem;
+
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+}
+
+/* ---------------------------------------------------------------------------
+ * Dark theme
+ * --------------------------------------------------------------------------- */
+html.dark,
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --np-primary: #3aa8b8;
+  --np-primary-hover: #5cbcc9;
+  --np-primary-foreground: #04161a;
+  --np-secondary: #8aa3b5;
+  --np-secondary-foreground: #0f1c24;
+
+  --np-success: #3dba7a;
+  --np-success-soft: #123525;
+  --np-success-foreground: #d6f5e4;
+
+  --np-info: #5b9fd6;
+  --np-info-soft: #13293d;
+  --np-info-foreground: #d8ebfa;
+
+  --np-warning: #e09a4a;
+  --np-warning-soft: #3a2610;
+  --np-warning-foreground: #ffe8cc;
+
+  --np-danger: #e06a5c;
+  --np-danger-soft: #3a1713;
+  --np-danger-foreground: #ffd8d3;
+
+  --np-analysis: #a78bd4;
+  --np-analysis-soft: #2a2040;
+  --np-analysis-foreground: #efe6ff;
+
+  --np-neutral: #94a3b8;
+  --np-neutral-soft: #1e2936;
+  --np-neutral-foreground: #e2e8f0;
+
+  --surface-primary: #121c24;
+  --surface-secondary: #0c141a;
+  --surface-tertiary: #1a2731;
+  --surface-inverse: #e8eef2;
+  --background: var(--surface-secondary);
+  --foreground: #e8eef2;
+  --foreground-muted: #9aabb7;
+  --foreground-subtle: #6f8290;
+
+  --border-default: #2a3a46;
+  --border-strong: #3d5160;
+  --border-focus: var(--np-primary);
+
+  --np-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
+  --np-shadow-md: 0 4px 14px rgb(0 0 0 / 0.45);
+  --np-shadow-lg: 0 16px 36px rgb(0 0 0 / 0.55);
+}
+
+/* ---------------------------------------------------------------------------
+ * NP-372 — Typography utilities
+ * --------------------------------------------------------------------------- */
+.np-page-title {
+  font-family: var(--np-font-serif);
+  font-size: var(--text-page-title);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.np-section-title {
+  font-family: var(--np-font-sans);
+  font-size: var(--text-section-title);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-tight);
+  color: var(--foreground);
+}
+
+.np-card-title {
+  font-size: var(--text-card-title);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-normal);
+  color: var(--foreground);
+}
+
+.np-body {
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--leading-normal);
+  color: var(--foreground);
+}
+
+.np-table-text {
+  font-size: var(--text-table);
+  line-height: var(--leading-normal);
+  font-variant-numeric: tabular-nums;
+}
+
+.np-metric {
+  font-size: var(--text-metric);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-tight);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.np-helper {
+  font-size: var(--text-helper);
+  line-height: var(--leading-normal);
+  color: var(--foreground-muted);
+}
+
+.np-money {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  white-space: nowrap;
+}
+
+.np-money__currency {
+  margin-left: 0.2em;
+  font-size: 0.78em;
+  font-weight: var(--font-weight-medium);
+  color: var(--foreground-muted);
+}
+
+/* Surfaces */
+.np-surface {
+  background: var(--surface-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.np-surface-muted {
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+}

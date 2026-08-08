@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, Source_Serif_4 } from "next/font/google";
 
 import { PwaProvider } from "@/components/pwa/pwa-provider";
+import { ThemeProvider } from "@/components/ui/theme-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { env } from "@/lib/env";
 
@@ -24,7 +25,10 @@ export const metadata: Metadata = {
   },
   description: "KOBİ tahsilat ve nakit takip platformu",
   manifest: "/manifest.webmanifest",
-  themeColor: "#0f4c81",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#0b5f6e" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c141a" },
+  ],
   appleWebApp: {
     capable: true,
     title: "NakitPilot",
@@ -45,12 +49,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr" className={`${manrope.variable} ${sourceSerif.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col bg-slate-50 font-sans text-slate-900">
-        <ToastProvider>
-          {children}
-          <PwaProvider />
-        </ToastProvider>
+    <html lang="tr" className={`${manrope.variable} ${sourceSerif.variable} h-full antialiased`} suppressHydrationWarning>
+      <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var m=localStorage.getItem('nakitpilot.theme');var d=m==='dark'||(m!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.classList.toggle('dark',d);r.dataset.theme=d?'dark':'light';r.style.colorScheme=d?'dark':'light';}catch(e){}})();`,
+          }}
+        />
+        <ThemeProvider>
+          <ToastProvider>
+            {children}
+            <PwaProvider />
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
