@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/ui/empty-state";
-import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
+import { TimelineSkeleton } from "@/components/ui/loading-skeleton";
 import { fetchCustomerTimeline } from "@/lib/collections/api";
 import type { TimelineEvent } from "@/lib/collections/types";
 import { cn } from "@/lib/cn";
+import { EMPTY_PRESETS } from "@/lib/ui/empty-presets";
 
 const KIND_FILTERS: { id: string; label: string; kinds: string[] }[] = [
   { id: "all", label: "Tümü", kinds: [] },
@@ -76,7 +77,7 @@ export function CustomerTimeline({
             type="button"
             onClick={() => setFilterId(f.id)}
             className={cn(
-              "rounded-full border px-2.5 py-1 text-xs font-medium",
+              "min-h-11 rounded-[var(--radius-md)] border px-3 py-2 text-xs font-medium",
               filterId === f.id
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border-default text-muted hover:bg-surface-tertiary",
@@ -87,9 +88,17 @@ export function CustomerTimeline({
         ))}
       </div>
 
-      {loading ? <LoadingSkeleton lines={5} /> : null}
+      {loading ? <TimelineSkeleton /> : null}
       {!loading && events.length === 0 ? (
-        <EmptyState title="Aktivite yok" description="Bu filtrede kayıt bulunmuyor." />
+        <EmptyState
+          title={EMPTY_PRESETS.timeline.title}
+          description={
+            filterId === "all"
+              ? EMPTY_PRESETS.timeline.description
+              : "Bu filtrede kayıt bulunmuyor."
+          }
+          why={EMPTY_PRESETS.timeline.why}
+        />
       ) : null}
 
       {!loading && events.length > 0 ? (

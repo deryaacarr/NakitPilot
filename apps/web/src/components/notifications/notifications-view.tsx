@@ -22,6 +22,7 @@ import {
   type DashboardAlert,
   type NotificationPreferences,
 } from "@/lib/notifications/api";
+import { EMPTY_PRESETS } from "@/lib/ui/empty-presets";
 
 const TYPE_LABELS: Record<string, string> = {
   TASK_DUE: "Görev vadesi",
@@ -269,12 +270,15 @@ export function NotificationsView() {
 
       {alerts.length === 0 ? (
         <EmptyState
-          title="Bildirim yok"
+          title={EMPTY_PRESETS.notifications.title}
           description={
             filter === "unread"
               ? "Okunmamış bildiriminiz bulunmuyor."
-              : "Henüz bir bildirim oluşturulmadı."
+              : EMPTY_PRESETS.notifications.description
           }
+          why={EMPTY_PRESETS.notifications.why}
+          actionLabel={EMPTY_PRESETS.notifications.actionLabel}
+          actionHref={EMPTY_PRESETS.notifications.actionHref}
         />
       ) : (
         <div className="space-y-6">

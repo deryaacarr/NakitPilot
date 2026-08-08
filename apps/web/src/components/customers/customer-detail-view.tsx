@@ -18,7 +18,8 @@ import { ErrorState } from "@/components/errors";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
+import { DetailSkeleton, LoadingSkeleton } from "@/components/ui/loading-skeleton";
+import { EMPTY_PRESETS } from "@/lib/ui/empty-presets";
 import { Money } from "@/components/ui/money";
 import { StatusChip } from "@/components/ui/status-chip";
 import { useToast } from "@/components/ui/toast";
@@ -104,7 +105,7 @@ export function CustomerDetailView({ customerId }: { customerId: number }) {
     setCustomer(result.data);
   };
 
-  if (loading) return <LoadingSkeleton lines={8} />;
+  if (loading) return <DetailSkeleton />;
   if (error) return <ErrorState error={error} onRetry={() => void load()} />;
   if (!customer) return null;
 
@@ -318,7 +319,17 @@ function RelatedInvoices({ customerId }: { customerId: number }) {
     });
   }, [customerId]);
   if (loading) return <LoadingSkeleton lines={4} />;
-  if (!rows.length) return <EmptyState title="Fatura yok" description="Bu müşteriye ait fatura bulunamadı." />;
+  if (!rows.length) {
+    return (
+      <EmptyState
+        title={EMPTY_PRESETS.invoices.title}
+        description="Bu müşteriye ait fatura bulunamadı."
+        why={EMPTY_PRESETS.invoices.why}
+        actionLabel={EMPTY_PRESETS.invoices.actionLabel}
+        actionHref={EMPTY_PRESETS.invoices.actionHref}
+      />
+    );
+  }
   return (
     <ul className="divide-y divide-border-default rounded-[var(--radius-lg)] border border-border-default bg-surface-primary">
       {rows.map((r) => (
@@ -344,7 +355,17 @@ function RelatedPayments({ customerId }: { customerId: number }) {
     });
   }, [customerId]);
   if (loading) return <LoadingSkeleton lines={4} />;
-  if (!rows.length) return <EmptyState title="Ödeme yok" description="Bu müşteriye ait ödeme bulunamadı." />;
+  if (!rows.length) {
+    return (
+      <EmptyState
+        title={EMPTY_PRESETS.payments.title}
+        description="Bu müşteriye ait ödeme bulunamadı."
+        why={EMPTY_PRESETS.payments.why}
+        actionLabel={EMPTY_PRESETS.payments.actionLabel}
+        actionHref={EMPTY_PRESETS.payments.actionHref}
+      />
+    );
+  }
   return (
     <ul className="divide-y divide-border-default rounded-[var(--radius-lg)] border border-border-default bg-surface-primary">
       {rows.map((r) => (
@@ -368,7 +389,17 @@ function RelatedPromises({ customerId }: { customerId: number }) {
     });
   }, [customerId]);
   if (loading) return <LoadingSkeleton lines={4} />;
-  if (!rows.length) return <EmptyState title="Ödeme sözü yok" description="Bu müşteriye ait söz bulunamadı." />;
+  if (!rows.length) {
+    return (
+      <EmptyState
+        title={EMPTY_PRESETS.promises.title}
+        description="Bu müşteriye ait söz bulunamadı."
+        why={EMPTY_PRESETS.promises.why}
+        actionLabel={EMPTY_PRESETS.promises.actionLabel}
+        actionHref={EMPTY_PRESETS.promises.actionHref}
+      />
+    );
+  }
   return (
     <ul className="divide-y divide-border-default rounded-[var(--radius-lg)] border border-border-default bg-surface-primary">
       {rows.map((r) => (

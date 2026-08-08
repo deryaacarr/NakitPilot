@@ -64,14 +64,16 @@ export function Dropdown({ trigger, items, align = "right", className }: Dropdow
           id={menuId}
           role="menu"
           className={cn(
-            "absolute z-30 mt-2 min-w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg",
+            "absolute z-30 mt-2 min-w-48 overflow-hidden rounded-[var(--radius-lg)] border border-border-default bg-surface-primary py-1 shadow-[var(--shadow-lg)]",
             align === "right" ? "right-0" : "left-0",
           )}
         >
           {items.map((item) => {
             const itemClass = cn(
-              "block w-full px-3 py-2 text-left text-sm transition",
-              item.danger ? "text-red-700 hover:bg-red-50" : "text-slate-700 hover:bg-slate-50",
+              "block w-full min-h-11 px-3 py-2.5 text-left text-sm transition",
+              item.danger
+                ? "text-danger-foreground hover:bg-danger-soft"
+                : "text-foreground hover:bg-surface-secondary",
               item.disabled && "cursor-not-allowed opacity-50 hover:bg-transparent",
             );
 

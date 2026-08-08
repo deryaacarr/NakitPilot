@@ -7,7 +7,7 @@ import { PromiseCalendarView } from "@/components/promises/promise-calendar-view
 import { PromiseCreateForm } from "@/components/promises/promise-create-form";
 import { PromiseStatusCards } from "@/components/promises/promise-status-cards";
 import { ErrorState } from "@/components/errors";
-import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
+import { DashboardSkeleton } from "@/components/ui/loading-skeleton";
 import { cn } from "@/lib/cn";
 import type { AppError } from "@/lib/errors";
 import { fetchPromiseStatusBoard, listPaymentPromises } from "@/lib/promises/api";
@@ -44,7 +44,7 @@ export function PromiseExperience() {
     void load();
   }, [load]);
 
-  if (loading) return <LoadingSkeleton lines={10} />;
+  if (loading) return <DashboardSkeleton />;
   if (error) return <ErrorState error={error} onRetry={() => void load()} />;
   if (!board) return null;
 

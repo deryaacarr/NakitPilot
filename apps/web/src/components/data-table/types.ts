@@ -101,8 +101,17 @@ export type DataTableProps<T> = {
 
   emptyTitle?: string;
   emptyDescription?: string;
+  /** NP-470 — why this empty state matters */
+  emptyWhy?: string;
   emptyActionLabel?: string;
   onEmptyAction?: () => void;
+  emptyActionHref?: string;
+
+  /**
+   * NP-482 — custom mobile card. When omitted, first visible columns are shown as labeled rows.
+   * Desktop table stays unchanged; cards render below `md`.
+   */
+  mobileCard?: (row: T) => ReactNode;
 
   toolbarExtra?: ReactNode;
   /** Above table (e.g. bulk bar) */

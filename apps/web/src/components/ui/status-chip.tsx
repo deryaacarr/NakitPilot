@@ -1,16 +1,16 @@
 import { cn } from "@/lib/cn";
 import {
   FINANCIAL_COLOR_MEANING,
-  SEMANTIC_DOT_CLASS,
   SEMANTIC_SOFT_CLASS,
   type SemanticTone,
 } from "@/lib/design/semantic";
 
-const ICONS: Record<SemanticTone, string> = {
+/** NP-493 — shape + text, not color alone. */
+const SHAPES: Record<SemanticTone, string> = {
   success: "✓",
-  info: "i",
-  warning: "!",
-  danger: "‼",
+  info: "◆",
+  warning: "●",
+  danger: "▲",
   analysis: "◇",
   neutral: "–",
 };
@@ -24,10 +24,11 @@ type StatusChipProps = {
 };
 
 /**
- * NP-371 — never rely on color alone: icon + text + semantic tone.
+ * NP-371 / NP-493 — never rely on color alone: shape + text + semantic tone.
  */
 export function StatusChip({ tone, label, className, meaning }: StatusChipProps) {
   const meta = FINANCIAL_COLOR_MEANING[tone];
+  const shape = SHAPES[tone];
   return (
     <span
       className={cn(
@@ -37,14 +38,8 @@ export function StatusChip({ tone, label, className, meaning }: StatusChipProps)
       )}
       title={meaning || meta.label}
     >
-      <span
-        aria-hidden
-        className={cn(
-          "inline-flex size-3.5 items-center justify-center rounded-full text-[9px] font-bold text-white",
-          SEMANTIC_DOT_CLASS[tone],
-        )}
-      >
-        {ICONS[tone]}
+      <span aria-hidden className="font-bold leading-none">
+        {shape}
       </span>
       <span>{label}</span>
       <span className="sr-only">{meaning || meta.label}</span>

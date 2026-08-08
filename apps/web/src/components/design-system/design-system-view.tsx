@@ -105,6 +105,21 @@ export function DesignSystemView() {
         </div>
       </section>
 
+      <section className="np-surface p-[var(--space-4)] space-y-[var(--space-3)]">
+        <h2 className="np-section-title">Erişilebilirlik (EPIC 49)</h2>
+        <ul className="np-body text-muted list-disc space-y-1 pl-5">
+          <li>Normal metin kontrastı ≥ 4.5:1 · büyük metin ≥ 3:1 (açık ve koyu tema)</li>
+          <li>Risk: renk + şekil (▲ kritik · ● orta · ✓ düşük)</li>
+          <li>Dokunma hedefi: min. 44px (coarse pointer’da control-height)</li>
+          <li>Modal/drawer: focus trap + Escape</li>
+        </ul>
+        <div className="flex flex-wrap gap-2">
+          <StatusChip tone="danger" label="Kritik" />
+          <StatusChip tone="warning" label="Orta" />
+          <StatusChip tone="success" label="Düşük" />
+        </div>
+      </section>
+
       <section className="np-surface p-[var(--space-4)]">
         <h2 className="np-section-title mb-[var(--space-3)]">Para hizası (tabular)</h2>
         <table className="data-table w-full max-w-xs text-right">

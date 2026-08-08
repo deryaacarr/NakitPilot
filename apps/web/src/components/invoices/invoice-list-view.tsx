@@ -17,6 +17,7 @@ import { RISK_LABELS, type RiskStatus } from "@/lib/customers/types";
 import { listInvoices } from "@/lib/invoices/api";
 import { INVOICE_STATUS_LABELS, type Invoice, type InvoiceStatus } from "@/lib/invoices/types";
 import type { AppError } from "@/lib/errors";
+import { EMPTY_PRESETS } from "@/lib/ui/empty-presets";
 import {
   createSavedView,
   fetchSavedViewByToken,
@@ -572,12 +573,11 @@ export function InvoiceListView() {
         loading={loading}
         error={error}
         onRetry={() => void load()}
-        emptyTitle="Fatura bulunamadı"
-        emptyDescription="Filtreleri değiştirin veya yeni fatura ekleyin."
-        emptyActionLabel="Yeni fatura"
-        onEmptyAction={() => {
-          window.location.href = "/invoices/new";
-        }}
+        emptyTitle={EMPTY_PRESETS.invoices.title}
+        emptyDescription={EMPTY_PRESETS.invoices.description}
+        emptyWhy={EMPTY_PRESETS.invoices.why}
+        emptyActionLabel={EMPTY_PRESETS.invoices.actionLabel}
+        emptyActionHref={EMPTY_PRESETS.invoices.actionHref}
         selectionBar={
           <InvoiceBulkBar
             selectedIds={selectedKeys.map(Number)}

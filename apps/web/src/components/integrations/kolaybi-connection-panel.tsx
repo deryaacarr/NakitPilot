@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { ErrorState } from "@/components/errors/error-state";
+import { ErrorState, SyncErrorState } from "@/components/errors/error-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SkeletonBlock } from "@/components/ui/loading-skeleton";
@@ -60,6 +60,18 @@ const RESOLUTION_ACTIONS: { value: SyncConflictResolution; label: string }[] = [
   { value: "merge", label: "Kayıtları birleştir" },
   { value: "skip_field_forever", label: "Bu alanı gelecekte senkronize etme" },
 ];
+
+function formatRelativeSync(iso: string | null | undefined): string {
+  if (!iso) return "bilgi yok";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "bilgi yok";
+  const diffMin = Math.round((Date.now() - then) / 60_000);
+  if (diffMin < 1) return "az önce";
+  if (diffMin < 60) return `${diffMin} dakika önce`;
+  const hours = Math.round(diffMin / 60);
+  if (hours < 48) return `${hours} saat önce`;
+  return `${Math.round(hours / 24)} gün önce`;
+}
 
 function formatDateTime(value: string | null) {
   if (!value) return "—";
@@ -398,6 +410,16 @@ export function KolayBiConnectionPanel() {
 
       {isConfigured && step === "done" && connection ? (
         <div className="space-y-6">
+          {connection.status === "error" ? (
+            <SyncErrorState
+              lastSuccessLabel={
+                connection.last_successful_sync_at
+                  ? `Son başarılı eşitleme: ${formatRelativeSync(connection.last_successful_sync_at)}`
+                  : "Son başarılı eşitleme bilgisi yok"
+              }
+              onRetry={() => void onManualSync()}
+            />
+          ) : null}
           <dl className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
               <dt className="text-xs font-medium text-slate-500">Bağlantı durumu</dt>

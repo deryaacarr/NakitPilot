@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { StatusChip } from "@/components/ui/status-chip";
 import { formatDate, formatMoney } from "@/lib/customers/format";
 import {
   PROMISE_BOARD_GROUPS,
@@ -11,6 +12,16 @@ import {
   type PaymentPromise,
   type PromiseStatusBoard,
 } from "@/lib/promises/types";
+import { EMPTY_PRESETS } from "@/lib/ui/empty-presets";
+import type { SemanticTone } from "@/lib/design/semantic";
+
+function promiseTone(status: string): SemanticTone {
+  if (status === "BROKEN") return "danger";
+  if (status === "FULFILLED") return "success";
+  if (status === "PARTIALLY_FULFILLED") return "analysis";
+  if (status === "PENDING") return "warning";
+  return "neutral";
+}
 
 export function PromiseStatusCards({ board }: { board: PromiseStatusBoard }) {
   return (
@@ -26,7 +37,14 @@ export function PromiseStatusCards({ board }: { board: PromiseStatusBoard }) {
           </header>
           <div className="max-h-[22rem] space-y-2 overflow-y-auto p-3">
             {board[group.key].length === 0 ? (
-              <EmptyState title="Kayıt yok" description="Bu durumda söz yok." />
+              <EmptyState
+                title={EMPTY_PRESETS.promises.title}
+                description="Bu durumda ödeme sözü yok."
+                why={EMPTY_PRESETS.promises.why}
+                actionLabel={EMPTY_PRESETS.promises.actionLabel}
+                actionHref={EMPTY_PRESETS.promises.actionHref}
+                className="py-8"
+              />
             ) : (
               board[group.key].map((promise) => (
                 <PromiseStatusCard key={promise.id} promise={promise} />
@@ -59,19 +77,10 @@ export function PromiseStatusCard({ promise }: { promise: PaymentPromise }) {
             {promise.invoice_number ? ` · ${promise.invoice_number}` : ""}
           </p>
         </div>
-        <Badge
-          tone={
-            promise.status === "BROKEN"
-              ? "danger"
-              : promise.status === "FULFILLED"
-                ? "success"
-                : promise.status === "PARTIALLY_FULFILLED"
-                  ? "analysis"
-                  : "neutral"
-          }
-        >
-          {PROMISE_STATUS_LABELS[promise.status] ?? promise.status}
-        </Badge>
+        <StatusChip
+          tone={promiseTone(promise.status)}
+          label={PROMISE_STATUS_LABELS[promise.status] ?? promise.status}
+        />
       </div>
       <dl className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
         <Metric label="Söz tutarı" value={formatMoney(promise.amount, promise.currency)} />

@@ -29,120 +29,218 @@ export type TaskCardActions = {
   onPostpone?: () => void;
   onAssign?: () => void;
   onPrepare?: () => void;
+  onCall?: () => void;
 };
 
 export function TaskCard({
   task,
   actions,
   compact,
+  /** NP-480 — on small screens show only customer, amount, delay, risk, call, complete */
+  essentialOnMobile = false,
   className,
 }: {
   task: CollectionTask;
   actions?: TaskCardActions;
   compact?: boolean;
+  essentialOnMobile?: boolean;
   className?: string;
 }) {
   const closed = task.status === "COMPLETED" || task.status === "CANCELLED";
   const openBalance = task.open_balance ?? task.overdue_balance;
   const risk = task.customer_risk_status as RiskStatus;
+  const phoneHref = task.customer_phone ? `tel:${task.customer_phone}` : null;
 
   return (
-    <article
-      className={cn(
-        "rounded-[var(--radius-lg)] border border-border-default bg-surface-primary p-3",
-        task.status === "IN_PROGRESS" && "border-brand/40 ring-1 ring-brand/20",
-        className,
-      )}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <Link
-            href={`/customers/${task.customer}`}
-            className="font-semibold text-foreground hover:underline"
-          >
-            {task.customer_name}
-          </Link>
-          <p className="mt-0.5 text-xs text-muted">
-            {TASK_TYPE_LABELS[task.task_type] ?? task.task_type}
-            {task.title ? ` · ${task.title}` : ""}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          <StatusChip tone={priorityTone(task.priority)} label={task.priority} />
-          <StatusChip
-            tone={riskTone(task.customer_risk_status)}
-            label={RISK_LABELS[risk] ?? task.customer_risk_status}
-          />
-        </div>
-      </div>
+    <>
+      {essentialOnMobile ? (
+        <article
+          className={cn(
+            "rounded-[var(--radius-lg)] border border-border-default bg-surface-primary p-3 md:hidden",
+            task.status === "IN_PROGRESS" && "border-brand/40 ring-1 ring-brand/20",
+            className,
+          )}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <Link
+              href={`/customers/${task.customer}`}
+              className="min-w-0 truncate text-base font-semibold text-foreground hover:underline"
+            >
+              {task.customer_name}
+            </Link>
+            <StatusChip
+              tone={riskTone(task.customer_risk_status)}
+              label={RISK_LABELS[risk] ?? task.customer_risk_status}
+            />
+          </div>
+          <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <dt className="text-xs text-subtle">Tutar</dt>
+              <dd className="font-semibold tabular-nums text-foreground">
+                {formatMoney(openBalance)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-subtle">Gecikme</dt>
+              <dd className="font-semibold text-foreground">
+                {task.overdue_days != null ? `${task.overdue_days} gün` : "—"}
+              </dd>
+            </div>
+          </dl>
+          {!closed && actions ? (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {phoneHref ? (
+                <a
+                  href={phoneHref}
+                  className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] border border-border-default text-sm font-semibold"
+                >
+                  Ara
+                </a>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11"
+                  onClick={actions.onCall || actions.onPrepare}
+                  disabled={!actions.onCall && !actions.onPrepare}
+                >
+                  Ara
+                </Button>
+              )}
+              {actions.onComplete ? (
+                <Button type="button" className="min-h-11" onClick={actions.onComplete}>
+                  Görev tamamla
+                </Button>
+              ) : (
+                <span />
+              )}
+            </div>
+          ) : null}
+        </article>
+      ) : null}
 
-      <dl
+      <article
         className={cn(
-          "mt-3 grid gap-2 text-xs text-muted",
-          compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4",
+          "rounded-[var(--radius-lg)] border border-border-default bg-surface-primary p-3",
+          essentialOnMobile && "hidden md:block",
+          task.status === "IN_PROGRESS" && "border-brand/40 ring-1 ring-brand/20",
+          className,
         )}
       >
-        <Metric label="Açık bakiye" value={formatMoney(openBalance)} emphasize />
-        <Metric
-          label="Gecikme"
-          value={task.overdue_days != null ? `${task.overdue_days} gün` : "—"}
-        />
-        <Metric
-          label="Son iletişim"
-          value={
-            task.last_contact_at ? formatDate(task.last_contact_at.slice(0, 10)) : "—"
-          }
-        />
-        <Metric
-          label="Sorumlu"
-          value={task.assigned_to_name || task.assigned_to_email || "—"}
-        />
-        <div className={compact ? "col-span-2" : "col-span-2 sm:col-span-4"}>
-          <dt className="text-subtle">Ödeme sözü</dt>
-          <dd className="font-medium text-foreground">
-            {task.payment_promise
-              ? `${formatMoney(task.payment_promise.amount)} · ${formatDate(task.payment_promise.promised_date)} (${task.payment_promise.status})`
-              : "—"}
-          </dd>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <Link
+              href={`/customers/${task.customer}`}
+              className="font-semibold text-foreground hover:underline"
+            >
+              {task.customer_name}
+            </Link>
+            <p className="mt-0.5 text-xs text-muted">
+              {TASK_TYPE_LABELS[task.task_type] ?? task.task_type}
+              {task.title ? ` · ${task.title}` : ""}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <StatusChip tone={priorityTone(task.priority)} label={task.priority} />
+            <StatusChip
+              tone={riskTone(task.customer_risk_status)}
+              label={RISK_LABELS[risk] ?? task.customer_risk_status}
+            />
+          </div>
         </div>
-      </dl>
 
-      {!closed && actions ? (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {actions.onStart && task.status === "OPEN" ? (
-            <Button type="button" size="sm" variant="outline" onClick={actions.onStart}>
-              Başlat
-            </Button>
-          ) : null}
-          {actions.onPrepare ? (
-            <Button type="button" size="sm" variant="outline" onClick={actions.onPrepare}>
-              Hazırla
-            </Button>
-          ) : null}
-          {actions.onComplete ? (
-            <Button type="button" size="sm" onClick={actions.onComplete}>
-              Tamamla
-            </Button>
-          ) : null}
-          {actions.onPostpone ? (
-            <Button type="button" size="sm" variant="outline" onClick={actions.onPostpone}>
-              Ertele
-            </Button>
-          ) : null}
-          {actions.onAssign ? (
-            <Button type="button" size="sm" variant="outline" onClick={actions.onAssign}>
-              Başkasına ata
-            </Button>
-          ) : null}
-          <Link
-            href={`/customers/${task.customer}`}
-            className="inline-flex h-8 items-center rounded-[var(--radius-md)] border border-border-default px-2.5 text-xs font-semibold"
-          >
-            Müşteriyi aç
-          </Link>
-        </div>
-      ) : null}
-    </article>
+        <dl
+          className={cn(
+            "mt-3 grid gap-2 text-xs text-muted",
+            compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4",
+          )}
+        >
+          <Metric label="Açık bakiye" value={formatMoney(openBalance)} emphasize />
+          <Metric
+            label="Gecikme"
+            value={task.overdue_days != null ? `${task.overdue_days} gün` : "—"}
+          />
+          <Metric
+            label="Son iletişim"
+            value={
+              task.last_contact_at ? formatDate(task.last_contact_at.slice(0, 10)) : "—"
+            }
+          />
+          <Metric
+            label="Sorumlu"
+            value={task.assigned_to_name || task.assigned_to_email || "—"}
+          />
+          <div className={compact ? "col-span-2" : "col-span-2 sm:col-span-4"}>
+            <dt className="text-subtle">Ödeme sözü</dt>
+            <dd className="font-medium text-foreground">
+              {task.payment_promise
+                ? `${formatMoney(task.payment_promise.amount)} · ${formatDate(task.payment_promise.promised_date)} (${task.payment_promise.status})`
+                : "—"}
+            </dd>
+          </div>
+        </dl>
+
+        {!closed && actions ? (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {actions.onStart && task.status === "OPEN" ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="min-h-11"
+                onClick={actions.onStart}
+              >
+                Başlat
+              </Button>
+            ) : null}
+            {actions.onPrepare ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="min-h-11"
+                onClick={actions.onPrepare}
+              >
+                Hazırla
+              </Button>
+            ) : null}
+            {actions.onComplete ? (
+              <Button type="button" size="sm" className="min-h-11" onClick={actions.onComplete}>
+                Tamamla
+              </Button>
+            ) : null}
+            {actions.onPostpone ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="min-h-11"
+                onClick={actions.onPostpone}
+              >
+                Ertele
+              </Button>
+            ) : null}
+            {actions.onAssign ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="min-h-11"
+                onClick={actions.onAssign}
+              >
+                Başkasına ata
+              </Button>
+            ) : null}
+            <Link
+              href={`/customers/${task.customer}`}
+              className="inline-flex min-h-11 items-center rounded-[var(--radius-md)] border border-border-default px-3 text-xs font-semibold"
+            >
+              Müşteriyi aç
+            </Link>
+          </div>
+        ) : null}
+      </article>
+    </>
   );
 }
 

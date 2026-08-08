@@ -12,7 +12,7 @@ import { TaskCard } from "@/components/collections/task-card";
 import { ErrorState } from "@/components/errors";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
+import { TaskCardSkeleton } from "@/components/ui/loading-skeleton";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { fetchTodayBoard, updateCollectionTask } from "@/lib/collections/api";
@@ -23,6 +23,7 @@ import {
   type WorkViewMode,
 } from "@/lib/collections/types";
 import type { AppError } from "@/lib/errors";
+import { EMPTY_PRESETS } from "@/lib/ui/empty-presets";
 
 const GROUPS: { key: BoardGroupKey; title: string }[] = [
   { key: "overdue", title: "Gecikmiş" },
@@ -107,7 +108,18 @@ export function CollectionsBoard() {
     };
   }
 
-  if (loading) return <LoadingSkeleton lines={10} />;
+  if (loading) {
+    return (
+      <div className="grid gap-3 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, col) => (
+          <div key={col} className="space-y-2">
+            <TaskCardSkeleton />
+            <TaskCardSkeleton />
+          </div>
+        ))}
+      </div>
+    );
+  }
   if (error) return <ErrorState error={error} onRetry={() => void load()} />;
   if (!board) return null;
 
@@ -179,13 +191,25 @@ export function CollectionsBoard() {
               </header>
               <div className="flex-1 space-y-2 overflow-y-auto px-2 pb-2">
                 {board[group.key].length === 0 ? (
-                  <EmptyState title="Boş" description="Bu kolonda görev yok." />
+                  <EmptyState
+                    title={group.key === "today" ? EMPTY_PRESETS.tasks.title : "Bu kolonda görev yok."}
+                    description={
+                      group.key === "today"
+                        ? EMPTY_PRESETS.tasks.description
+                        : "Görevler oluşturuldukça burada görünür."
+                    }
+                    why={group.key === "today" ? EMPTY_PRESETS.tasks.why : undefined}
+                    actionLabel={group.key === "today" ? EMPTY_PRESETS.tasks.actionLabel : undefined}
+                    actionHref={group.key === "today" ? EMPTY_PRESETS.tasks.actionHref : undefined}
+                    className="py-8"
+                  />
                 ) : (
                   board[group.key].map((task) => (
                     <TaskCard
                       key={task.id}
                       task={task}
                       compact
+                      essentialOnMobile
                       actions={actionsFor(task)}
                     />
                   ))
@@ -205,11 +229,20 @@ export function CollectionsBoard() {
                 <span className="text-xs text-muted">{board[group.key].length}</span>
               </header>
               {board[group.key].length === 0 ? (
-                <EmptyState title="Kayıt yok" description="Bu grupta görev bulunmuyor." />
+                <EmptyState
+                  title="Bu grupta görev yok."
+                  description="Görevler oluşturuldukça burada listelenir."
+                  why={EMPTY_PRESETS.tasks.why}
+                />
               ) : (
                 <div className="space-y-2">
                   {board[group.key].map((task) => (
-                    <TaskCard key={task.id} task={task} actions={actionsFor(task)} />
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      essentialOnMobile
+                      actions={actionsFor(task)}
+                    />
                   ))}
                 </div>
               )}

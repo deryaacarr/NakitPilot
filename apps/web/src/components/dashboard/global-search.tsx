@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { useFocusTrap } from "@/lib/a11y/use-focus-trap";
 import { globalSearch, type GlobalSearchResult, type SearchHit } from "@/lib/search/api";
 
 const RECENT_KEY = "nakitpilot.search_recent";
@@ -36,8 +37,10 @@ export function GlobalSearch() {
   const [recent, setRecent] = useState<string[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
   const timerRef = useRef<number | null>(null);
+  useFocusTrap(dialogRef, open);
 
   const grouped = useMemo(() => {
     if (!result) {
@@ -82,16 +85,24 @@ export function GlobalSearch() {
   }, []);
 
   useEffect(() => {
+    const openSearch = () => {
+      setOpen(true);
+      window.setTimeout(() => inputRef.current?.focus(), 0);
+    };
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setOpen(true);
-        window.setTimeout(() => inputRef.current?.focus(), 0);
+        openSearch();
       }
       if (event.key === "Escape") setOpen(false);
     };
+    const onCustom = () => openSearch();
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    window.addEventListener("nakitpilot:open-search", onCustom);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("nakitpilot:open-search", onCustom);
+    };
   }, []);
 
   useEffect(() => {
@@ -115,7 +126,8 @@ export function GlobalSearch() {
     <div className="relative min-w-0 flex-1 max-w-md">
       <button
         type="button"
-        className="flex h-9 w-full items-center gap-2 rounded-[var(--radius-md)] border border-border-default bg-surface-secondary px-3 text-left text-sm text-muted hover:border-border-strong"
+        className="flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-md)] border border-border-default bg-surface-secondary px-3 text-left text-sm text-muted hover:border-border-strong"
+        aria-label="Global arama"
         onClick={() => {
           setOpen(true);
           window.setTimeout(() => inputRef.current?.focus(), 0);
@@ -134,10 +146,13 @@ export function GlobalSearch() {
           onClick={() => setOpen(false)}
         >
           <div
+            ref={dialogRef}
             id={panelId}
             role="dialog"
+            aria-modal="true"
             aria-label="Global arama"
-            className="w-full max-w-xl overflow-hidden rounded-[var(--radius-lg)] border border-border-default bg-surface-primary shadow-[var(--shadow-lg)]"
+            tabIndex={-1}
+            className="w-full max-w-xl overflow-hidden rounded-[var(--radius-lg)] border border-border-default bg-surface-primary shadow-[var(--shadow-lg)] outline-none"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="border-b border-border-default p-3">

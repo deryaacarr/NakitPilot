@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 
 import { ErrorState } from "@/components/errors/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { TableSkeleton } from "@/components/ui/loading-skeleton";
 import { Pagination } from "@/components/ui/pagination";
 import { Select } from "@/components/ui/select";
-import { SkeletonBlock } from "@/components/ui/loading-skeleton";
 import { cn } from "@/lib/cn";
 
 import { ColumnVisibilityMenu, SortIndicator } from "./column-visibility";
@@ -48,8 +48,11 @@ export function DataTable<T>({
   onRetry,
   emptyTitle = "Kayıt bulunamadı",
   emptyDescription = "Arama veya filtreleri değiştirerek tekrar deneyin.",
+  emptyWhy,
   emptyActionLabel,
   onEmptyAction,
+  emptyActionHref,
+  mobileCard,
   toolbarExtra,
   selectionBar,
   className,
@@ -67,6 +70,7 @@ export function DataTable<T>({
     }
     return init;
   });
+  const [focusIndex, setFocusIndex] = useState(0);
 
   const hiddenColumnIds = controlledHidden ?? uncontrolledHidden;
   const setHiddenColumnIds = onHiddenColumnIdsChange ?? setUncontrolledHidden;
@@ -83,6 +87,10 @@ export function DataTable<T>({
   const rowKeys = rows.map((r) => rowKey(r));
   const allSelected = rowKeys.length > 0 && rowKeys.every((k) => selectedKeys.includes(k));
   const someSelected = selectedKeys.length > 0 && !allSelected;
+
+  useEffect(() => {
+    if (focusIndex >= rows.length) setFocusIndex(Math.max(0, rows.length - 1));
+  }, [focusIndex, rows.length]);
 
   function toggleAll() {
     if (!onSelectedKeysChange) return;
@@ -116,11 +124,63 @@ export function DataTable<T>({
     document.addEventListener("mouseup", onUp);
   }
 
+  function onTableKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (!rows.length) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setFocusIndex((i) => Math.min(rows.length - 1, i + 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setFocusIndex((i) => Math.max(0, i - 1));
+    } else if (event.key === "Enter" && onRowClick) {
+      event.preventDefault();
+      onRowClick(rows[focusIndex]);
+    } else if (event.key === " " && selectable && onSelectedKeysChange) {
+      event.preventDefault();
+      toggleOne(rowKey(rows[focusIndex]));
+    }
+  }
+
   const showToolbar =
     Boolean(onSearchChange) ||
     filters.length > 0 ||
     Boolean(toolbarExtra) ||
     columns.some((c) => c.hideable !== false);
+
+  function renderDefaultMobileCard(row: T) {
+    if (mobileCard) return mobileCard(row);
+    const preview = visibleColumns.slice(0, 4);
+    const actions = resolveActions(row);
+    return (
+      <div className="space-y-2">
+        <dl className="grid grid-cols-2 gap-2 text-sm">
+          {preview.map((column) => (
+            <div key={column.id} className={column.align === "right" ? "text-right" : undefined}>
+              <dt className="text-xs text-subtle">{headerLabel(column.header)}</dt>
+              <dd className="font-medium text-foreground">{column.cell(row)}</dd>
+            </div>
+          ))}
+        </dl>
+        {actions.length ? (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {actions.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                className={cn(
+                  "inline-flex min-h-11 items-center rounded-[var(--radius-md)] border border-border-default px-3 text-xs font-semibold",
+                  action.tone === "danger" && "border-danger/40 text-danger",
+                )}
+                onClick={() => action.onClick(row)}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -168,170 +228,225 @@ export function DataTable<T>({
       {error ? (
         <ErrorState error={error} onRetry={onRetry} />
       ) : loading ? (
-        <div className="space-y-2 rounded-[var(--radius-lg)] border border-border-default bg-surface-primary p-4">
-          <SkeletonBlock className="h-10 w-full" />
-          <SkeletonBlock className="h-10 w-full" />
-          <SkeletonBlock className="h-10 w-full" />
-          <SkeletonBlock className="h-10 w-3/4" />
-        </div>
+        <TableSkeleton rows={6} />
       ) : rows.length === 0 ? (
         <EmptyState
           title={emptyTitle}
           description={emptyDescription}
+          why={emptyWhy}
           actionLabel={emptyActionLabel}
           onAction={onEmptyAction}
+          actionHref={emptyActionHref}
         />
       ) : (
-        <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border-default bg-surface-primary">
-          <div className={cn("overflow-auto", maxHeightClassName)}>
-            <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
-              <thead
-                className={cn(
-                  "bg-surface-secondary text-xs font-semibold tracking-wide text-subtle uppercase",
-                  stickyHeader && "sticky top-0 z-20",
-                )}
-              >
-                <tr>
-                  {selectable ? (
-                    <th
-                      className={cn(
-                        "w-10 border-b border-border-default bg-surface-secondary px-3 py-3",
-                        stickyHeader && "sticky top-0 z-30",
-                        stickyFirstColumn && "sticky left-0 z-40",
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={allSelected}
-                        ref={(el) => {
-                          if (el) el.indeterminate = someSelected;
-                        }}
-                        onChange={toggleAll}
-                        aria-label="Tümünü seç"
-                      />
-                    </th>
-                  ) : null}
-                  {visibleColumns.map((column) => {
-                    const isSticky = column.id === firstStickyId;
-                    const w = widths[column.id] ?? column.width;
-                    return (
+        <>
+          {/* NP-482 — mobile cards */}
+          <ul className="space-y-2 md:hidden" role="list">
+            {rows.map((row, index) => {
+              const key = rowKey(row);
+              const selected = selectedKeys.includes(key);
+              return (
+                <li key={key}>
+                  <div
+                    role={onRowClick ? "button" : undefined}
+                    tabIndex={onRowClick ? 0 : undefined}
+                    className={cn(
+                      "rounded-[var(--radius-lg)] border border-border-default bg-surface-primary p-3",
+                      selected && "border-primary/40 bg-primary/5",
+                      onRowClick && "cursor-pointer",
+                    )}
+                    onClick={() => onRowClick?.(row)}
+                    onKeyDown={(event) => {
+                      if (!onRowClick) return;
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onRowClick(row);
+                      }
+                    }}
+                  >
+                    {selectable ? (
+                      <label
+                        className="mb-2 flex min-h-11 items-center gap-2 text-sm"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleOne(key)}
+                          aria-label={`Satır ${index + 1} seç`}
+                          className="size-4"
+                        />
+                        Seç
+                      </label>
+                    ) : null}
+                    {renderDefaultMobileCard(row)}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Desktop table */}
+          <div
+            className="hidden overflow-hidden rounded-[var(--radius-lg)] border border-border-default bg-surface-primary md:block"
+            tabIndex={0}
+            role="grid"
+            aria-rowcount={rows.length}
+            onKeyDown={onTableKeyDown}
+          >
+            <div className={cn("overflow-auto", maxHeightClassName)}>
+              <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
+                <thead
+                  className={cn(
+                    "bg-surface-secondary text-xs font-semibold tracking-wide text-subtle uppercase",
+                    stickyHeader && "sticky top-0 z-20",
+                  )}
+                >
+                  <tr>
+                    {selectable ? (
                       <th
-                        key={column.id}
-                        style={w ? { width: w, minWidth: w } : undefined}
                         className={cn(
-                          "relative border-b border-border-default bg-surface-secondary px-4 py-3",
-                          column.align === "right" && "text-right",
-                          column.className,
-                          stickyHeader && "sticky top-0 z-20",
-                          isSticky && "sticky left-0 z-30 shadow-[1px_0_0_var(--border-default)]",
-                          selectable && isSticky && "left-10",
+                          "w-10 border-b border-border-default bg-surface-secondary px-3 py-3",
+                          stickyHeader && "sticky top-0 z-30",
+                          stickyFirstColumn && "sticky left-0 z-40",
                         )}
                       >
-                        <SortableHeader column={column} sort={sort} onSortChange={onSortChange} />
-                        <button
-                          type="button"
-                          aria-label={`${headerLabel(column.header)} genişliğini ayarla`}
-                          className="absolute top-0 right-0 h-full w-1 cursor-col-resize hover:bg-primary/40"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            const startW = w ?? e.currentTarget.parentElement?.offsetWidth ?? 120;
-                            startResize(column.id, e.clientX, startW, column.minWidth ?? 72);
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          ref={(el) => {
+                            if (el) el.indeterminate = someSelected;
                           }}
+                          onChange={toggleAll}
+                          aria-label="Tümünü seç"
+                          className="size-4"
                         />
                       </th>
+                    ) : null}
+                    {visibleColumns.map((column) => {
+                      const isSticky = column.id === firstStickyId;
+                      const w = widths[column.id] ?? column.width;
+                      return (
+                        <th
+                          key={column.id}
+                          style={w ? { width: w, minWidth: w } : undefined}
+                          className={cn(
+                            "relative border-b border-border-default bg-surface-secondary px-4 py-3",
+                            column.align === "right" && "text-right",
+                            column.className,
+                            stickyHeader && "sticky top-0 z-20",
+                            isSticky && "sticky left-0 z-30 shadow-[1px_0_0_var(--border-default)]",
+                            selectable && isSticky && "left-10",
+                          )}
+                        >
+                          <SortableHeader column={column} sort={sort} onSortChange={onSortChange} />
+                          <button
+                            type="button"
+                            aria-label={`${headerLabel(column.header)} genişliğini ayarla`}
+                            className="absolute top-0 right-0 h-full w-1 cursor-col-resize hover:bg-primary/40"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              const startW = w ?? e.currentTarget.parentElement?.offsetWidth ?? 120;
+                              startResize(column.id, e.clientX, startW, column.minWidth ?? 72);
+                            }}
+                          />
+                        </th>
+                      );
+                    })}
+                    {rowActions ? (
+                      <th className="sticky top-0 z-20 border-b border-border-default bg-surface-secondary px-4 py-3">
+                        Aksiyon
+                      </th>
+                    ) : null}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, index) => {
+                    const key = rowKey(row);
+                    const selected = selectedKeys.includes(key);
+                    const active = activeRowKey === key || focusIndex === index;
+                    const actions = resolveActions(row);
+                    return (
+                      <tr
+                        key={key}
+                        aria-selected={selected || active}
+                        className={cn(
+                          "border-b border-border-default last:border-0",
+                          selected && "bg-primary/5",
+                          active && "bg-primary/10",
+                          onRowClick && "cursor-pointer hover:bg-surface-secondary/80",
+                        )}
+                        onClick={() => {
+                          setFocusIndex(index);
+                          onRowClick?.(row);
+                        }}
+                      >
+                        {selectable ? (
+                          <td
+                            className={cn(
+                              "bg-surface-primary px-3 py-3",
+                              stickyFirstColumn && "sticky left-0 z-10",
+                              selected && "bg-primary/5",
+                            )}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={() => toggleOne(key)}
+                              aria-label="Satırı seç"
+                              className="size-4"
+                            />
+                          </td>
+                        ) : null}
+                        {visibleColumns.map((column) => {
+                          const isSticky = column.id === firstStickyId;
+                          const w = widths[column.id] ?? column.width;
+                          return (
+                            <td
+                              key={column.id}
+                              style={w ? { width: w, minWidth: w } : undefined}
+                              className={cn(
+                                "bg-surface-primary px-4 py-3 text-foreground",
+                                column.align === "right" && "text-right tabular-nums",
+                                column.className,
+                                isSticky &&
+                                  "sticky left-0 z-10 shadow-[1px_0_0_var(--border-default)]",
+                                selectable && isSticky && "left-10",
+                                (selected || active) && "bg-primary/5",
+                              )}
+                            >
+                              {column.cell(row)}
+                            </td>
+                          );
+                        })}
+                        {rowActions ? (
+                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex flex-wrap gap-1">
+                              {actions.map((action) => (
+                                <button
+                                  key={action.id}
+                                  type="button"
+                                  className={cn(
+                                    "inline-flex min-h-11 items-center rounded-[var(--radius-md)] border border-border-default px-3 text-xs font-semibold",
+                                    action.tone === "danger" && "border-danger/40 text-danger",
+                                  )}
+                                  onClick={() => action.onClick(row)}
+                                >
+                                  {action.label}
+                                </button>
+                              ))}
+                            </div>
+                          </td>
+                        ) : null}
+                      </tr>
                     );
                   })}
-                  {rowActions ? (
-                    <th className="sticky top-0 z-20 border-b border-border-default bg-surface-secondary px-4 py-3">
-                      Aksiyon
-                    </th>
-                  ) : null}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => {
-                  const key = rowKey(row);
-                  const selected = selectedKeys.includes(key);
-                  const active = activeRowKey === key;
-                  const actions = resolveActions(row);
-                  return (
-                    <tr
-                      key={key}
-                      className={cn(
-                        "border-b border-border-default last:border-0",
-                        selected && "bg-primary/5",
-                        active && "bg-primary/10",
-                        onRowClick && "cursor-pointer hover:bg-surface-secondary/80",
-                      )}
-                      onClick={() => onRowClick?.(row)}
-                    >
-                      {selectable ? (
-                        <td
-                          className={cn(
-                            "bg-surface-primary px-3 py-3",
-                            stickyFirstColumn && "sticky left-0 z-10",
-                            selected && "bg-primary/5",
-                          )}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selected}
-                            onChange={() => toggleOne(key)}
-                            aria-label="Satırı seç"
-                          />
-                        </td>
-                      ) : null}
-                      {visibleColumns.map((column) => {
-                        const isSticky = column.id === firstStickyId;
-                        const w = widths[column.id] ?? column.width;
-                        return (
-                          <td
-                            key={column.id}
-                            style={w ? { width: w, minWidth: w } : undefined}
-                            className={cn(
-                              "bg-surface-primary px-4 py-3 text-foreground",
-                              column.align === "right" && "text-right tabular-nums",
-                              column.className,
-                              isSticky &&
-                                "sticky left-0 z-10 shadow-[1px_0_0_var(--border-default)]",
-                              selectable && isSticky && "left-10",
-                              (selected || active) && "bg-primary/5",
-                            )}
-                          >
-                            {column.cell(row)}
-                          </td>
-                        );
-                      })}
-                      {rowActions ? (
-                        <td
-                          className="px-4 py-3"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div className="flex flex-wrap gap-1">
-                            {actions.map((action) => (
-                              <button
-                                key={action.id}
-                                type="button"
-                                className={cn(
-                                  "rounded-[var(--radius-md)] border border-border-default px-2 py-1 text-xs font-semibold",
-                                  action.tone === "danger" && "border-danger/40 text-danger",
-                                )}
-                                onClick={() => action.onClick(row)}
-                              >
-                                {action.label}
-                              </button>
-                            ))}
-                          </div>
-                        </td>
-                      ) : null}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {!error && !loading ? (
@@ -359,7 +474,7 @@ function SortableHeader<T>({
   return (
     <button
       type="button"
-      className="inline-flex items-center font-semibold tracking-wide uppercase"
+      className="inline-flex min-h-11 items-center font-semibold tracking-wide uppercase"
       onClick={() => {
         if (!active) {
           onSortChange({ id: column.id, direction: "asc" });

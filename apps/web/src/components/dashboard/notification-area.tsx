@@ -119,7 +119,7 @@ export function NotificationArea() {
     <div className="relative" ref={rootRef}>
       <button
         type="button"
-        className="relative rounded-lg p-2 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+        className="relative inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-md)] text-muted transition hover:bg-surface-secondary hover:text-foreground"
         aria-label="Bildirimler"
         aria-expanded={open}
         aria-controls={panelId}

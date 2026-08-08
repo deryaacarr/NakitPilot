@@ -1,1 +1,1 @@
-export { ErrorState } from "./error-state";
+export { ErrorState, SyncErrorState } from "./error-state";

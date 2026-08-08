@@ -13,6 +13,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   ref,
 ) {
   const inputId = id ?? props.name;
+  const errorId = inputId ? `${inputId}-error` : undefined;
+  const hintId = inputId ? `${inputId}-hint` : undefined;
 
   return (
     <div className="space-y-[var(--space-2)]">
@@ -26,6 +28,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         id={inputId}
         disabled={disabled}
         aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : hint ? hintId : undefined}
         className={cn(
           "h-[var(--control-height-md)] w-full rounded-[var(--radius-md)] border bg-surface-primary px-3 text-sm text-foreground transition outline-none placeholder:text-subtle focus:ring-2 disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-70",
           error
@@ -36,11 +39,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         {...props}
       />
       {error ? (
-        <p className="text-sm text-danger-foreground" role="alert">
+        <p id={errorId} className="text-sm text-danger-foreground" role="alert">
           {error}
         </p>
       ) : hint ? (
-        <p className="np-helper">{hint}</p>
+        <p id={hintId} className="np-helper">
+          {hint}
+        </p>
       ) : null}
     </div>
   );

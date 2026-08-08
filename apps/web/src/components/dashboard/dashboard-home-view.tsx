@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { ErrorState } from "@/components/errors";
-import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
+import { DashboardSkeleton } from "@/components/ui/loading-skeleton";
 import { cn } from "@/lib/cn";
 import { fetchDashboardOverview } from "@/lib/dashboard/api";
 import type { DashboardOverview, DashboardRangePreset } from "@/lib/dashboard/types";
@@ -67,7 +67,7 @@ export function DashboardHomeView() {
     void load();
   }, [load, preset, customFrom, customTo]);
 
-  if (loading && !data) return <LoadingSkeleton lines={12} />;
+  if (loading && !data) return <DashboardSkeleton />;
   if (error && !data) return <ErrorState error={error} onRetry={() => void load()} />;
   if (!data) {
     return (

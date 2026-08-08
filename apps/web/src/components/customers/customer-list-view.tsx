@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DataTable, type DataTableColumn } from "@/components/data-table";
-import { Badge } from "@/components/ui/badge";
+import { StatusChip } from "@/components/ui/status-chip";
 import { listCustomers } from "@/lib/customers/api";
 import { formatDate, formatMoney } from "@/lib/customers/format";
 import { RISK_LABELS, type Customer, type RiskStatus } from "@/lib/customers/types";
 import { apiRequest } from "@/lib/api/client";
 import type { AppError } from "@/lib/errors";
+import { EMPTY_PRESETS } from "@/lib/ui/empty-presets";
+import type { SemanticTone } from "@/lib/design/semantic";
 
 type MembershipRow = {
   user_id: number;
@@ -22,7 +24,7 @@ const RISK_OPTIONS = (Object.keys(RISK_LABELS) as RiskStatus[]).map((value) => (
   label: RISK_LABELS[value],
 }));
 
-function riskTone(status: RiskStatus): "success" | "warning" | "danger" | "neutral" {
+function riskTone(status: RiskStatus): SemanticTone {
   if (status === "LOW") return "success";
   if (status === "MEDIUM") return "warning";
   if (status === "HIGH" || status === "CRITICAL") return "danger";
@@ -193,7 +195,7 @@ export function CustomerListView() {
         header: "Risk seviyesi",
         sortable: true,
         cell: (row) => (
-          <Badge tone={riskTone(row.risk_status)}>{RISK_LABELS[row.risk_status]}</Badge>
+          <StatusChip tone={riskTone(row.risk_status)} label={RISK_LABELS[row.risk_status]} />
         ),
       },
       {
@@ -307,12 +309,11 @@ export function CustomerListView() {
         loading={loading}
         error={error}
         onRetry={() => void load()}
-        emptyTitle="Müşteri bulunamadı"
-        emptyDescription="Filtreleri temizleyin veya yeni müşteri ekleyin."
-        emptyActionLabel="Yeni müşteri"
-        onEmptyAction={() => {
-          window.location.href = "/customers/new";
-        }}
+        emptyTitle={EMPTY_PRESETS.customers.title}
+        emptyDescription={EMPTY_PRESETS.customers.description}
+        emptyWhy={EMPTY_PRESETS.customers.why}
+        emptyActionLabel={EMPTY_PRESETS.customers.actionLabel}
+        emptyActionHref={EMPTY_PRESETS.customers.actionHref}
       />
     </div>
   );

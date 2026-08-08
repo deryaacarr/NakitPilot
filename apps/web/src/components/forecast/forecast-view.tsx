@@ -7,7 +7,7 @@ import { ChartInsight } from "@/components/forecast/chart-insight";
 import { ErrorState } from "@/components/errors";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
+import { ChartSkeleton, LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { listCustomers } from "@/lib/customers/api";
@@ -104,13 +104,16 @@ export function ForecastView() {
     toast({ title: "What-if senaryosu güncellendi", tone: "success" });
   }
 
-  if (loading) return <LoadingSkeleton lines={10} />;
+  if (loading) return <ChartSkeleton />;
   if (error) return <ErrorState error={error} onRetry={() => void load()} />;
   if (!data || data.weeks.length === 0) {
     return (
       <EmptyState
-        title="Forecast yok"
+        title="Henüz forecast oluşturulamadı."
         description="Açık fatura olduğunda 13 haftalık nakit akışı burada görünür."
+        why="Tahmin, tahsilat planı ve nakit sıkışıklığını erken gösterir."
+        actionLabel="Faturalara Git"
+        actionHref="/invoices"
       />
     );
   }
@@ -440,13 +443,16 @@ function ForecastChart({
 
   const hoverWeek = hover != null ? weeks[hover] : null;
 
+  const summary = `13 haftalık nakit tahmini. En yüksek beklenen tahsilat ${Math.round(maxVal).toLocaleString("tr-TR")} seviyesinde. Grafik iyimser, beklenen ve kötümser senaryoları gösterir.`;
+
   return (
     <div className="relative">
+      <p className="sr-only">{summary}</p>
       <svg
         viewBox={`0 0 ${width} ${height}`}
         className="h-64 w-full"
         role="img"
-        aria-label="Nakit akışı grafiği"
+        aria-label={summary}
         onMouseLeave={() => setHover(null)}
       >
         {[0.25, 0.5, 0.75].map((t) => (

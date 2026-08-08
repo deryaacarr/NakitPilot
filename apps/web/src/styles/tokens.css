@@ -54,8 +54,9 @@
   --surface-inverse: #0f1c24;
   --background: var(--surface-secondary);
   --foreground: #0f1c24;
-  --foreground-muted: #5b6b76;
-  --foreground-subtle: #8494a0;
+  /* NP-490 — body/helper contrast ≥4.5:1 on white / surface-secondary */
+  --foreground-muted: #4f5f6a;
+  --foreground-subtle: #5f707c;
 
   --border-default: #d5dee5;
   --border-strong: #b7c4ce;
@@ -121,7 +122,7 @@
   --shadow-md: var(--np-shadow-md);
   --shadow-lg: var(--np-shadow-lg);
 
-  /* Control sizes */
+  /* Control sizes — NP-483: md/lg meet 44px touch target on coarse pointers */
   --control-height-sm: 2rem;
   --control-height-md: 2.5rem;
   --control-height-lg: 2.75rem;
@@ -195,8 +196,9 @@ html[data-theme="dark"] {
   --surface-inverse: #e8eef2;
   --background: var(--surface-secondary);
   --foreground: #e8eef2;
-  --foreground-muted: #9aabb7;
-  --foreground-subtle: #6f8290;
+  /* NP-490 — muted/subtle keep ≥4.5:1 on surface-secondary */
+  --foreground-muted: #a8bac6;
+  --foreground-subtle: #8a9eab;
 
   --border-default: #2a3a46;
   --border-strong: #3d5160;
@@ -287,4 +289,13 @@ html[data-theme="dark"] {
   background: var(--surface-secondary);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
+}
+
+/* NP-483 — 44px minimum touch targets on coarse pointers */
+@media (pointer: coarse) {
+  :root {
+    --control-height-sm: 2.75rem;
+    --control-height-md: 2.75rem;
+    --control-height-lg: 3rem;
+  }
 }

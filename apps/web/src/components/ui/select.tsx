@@ -21,11 +21,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   ref,
 ) {
   const selectId = id ?? props.name;
+  const errorId = selectId ? `${selectId}-error` : undefined;
+  const hintId = selectId ? `${selectId}-hint` : undefined;
 
   return (
     <div className="space-y-1.5">
       {label ? (
-        <label htmlFor={selectId} className="block text-sm font-medium text-slate-700">
+        <label htmlFor={selectId} className="block text-sm font-medium text-foreground">
           {label}
         </label>
       ) : null}
@@ -34,11 +36,12 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
         id={selectId}
         disabled={disabled}
         aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : hint ? hintId : undefined}
         className={cn(
-          "h-10 w-full rounded-lg border bg-white px-3 text-sm text-slate-900 transition outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70",
+          "h-[var(--control-height-md)] w-full rounded-[var(--radius-md)] border bg-surface-primary px-3 text-sm text-foreground transition outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-70",
           error
-            ? "border-red-300 focus:border-red-400 focus:ring-red-200"
-            : "focus:border-brand focus:ring-brand/20 border-slate-300",
+            ? "border-danger focus:border-danger focus:ring-danger/20"
+            : "border-border-default focus:border-primary focus:ring-primary/20",
           className,
         )}
         {...props}
@@ -55,11 +58,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
         ))}
       </select>
       {error ? (
-        <p className="text-sm text-red-700" role="alert">
+        <p id={errorId} className="text-sm text-danger-foreground" role="alert">
           {error}
         </p>
       ) : hint ? (
-        <p className="text-xs text-slate-500">{hint}</p>
+        <p id={hintId} className="np-helper">
+          {hint}
+        </p>
       ) : null}
     </div>
   );
