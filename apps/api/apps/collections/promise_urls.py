@@ -5,6 +5,7 @@ from apps.collections.promise_views import (
     PaymentPromiseCancelView,
     PaymentPromiseDetailView,
     PaymentPromiseListCreateView,
+    PaymentPromiseStatusBoardView,
 )
 
 urlpatterns = [
@@ -13,6 +14,11 @@ urlpatterns = [
         "calendar/",
         PaymentPromiseCalendarView.as_view(),
         name="payment-promise-calendar",
+    ),
+    path(
+        "board/",
+        PaymentPromiseStatusBoardView.as_view(),
+        name="payment-promise-board",
     ),
     path("<int:pk>/", PaymentPromiseDetailView.as_view(), name="payment-promise-detail"),
     path(

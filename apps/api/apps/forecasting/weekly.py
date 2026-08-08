@@ -299,6 +299,33 @@ def calculate_organization_forecast(
     return result
 
 
+def _actual_by_week(
+    organization_id: int,
+    *,
+    currency: str,
+    week_starts: list[date],
+) -> dict[date, Decimal]:
+    """NP-440 — realized collections per ISO week (for past/current weeks)."""
+    from collections import defaultdict
+
+    from apps.payments.models import Payment
+
+    if not week_starts:
+        return {}
+    start = min(week_starts)
+    end = max(week_starts) + timedelta(days=6)
+    totals: dict[date, Decimal] = defaultdict(lambda: ZERO)
+    for payment in Payment.objects.filter(
+        organization_id=organization_id,
+        currency=currency,
+        cancelled_at__isnull=True,
+        payment_date__gte=start,
+        payment_date__lte=end,
+    ).only("amount", "payment_date"):
+        totals[iso_week_start(payment.payment_date)] += Decimal(str(payment.amount))
+    return {k: _q(v) for k, v in totals.items()}
+
+
 def cash_flow_api_payload(
     organization_id: int,
     *,
@@ -307,12 +334,19 @@ def cash_flow_api_payload(
     as_of: date | None = None,
     persist: bool = False,
 ) -> dict[str, Any]:
-    """NP-113/114/115 response shape for GET /api/forecast/cash-flow."""
+    """NP-113/114/115 + NP-440 response shape for GET /api/forecast/cash-flow."""
     result = calculate_organization_forecast(
         organization_id,
         as_of=as_of,
         persist=persist,
         weeks=weeks,
+    )
+    today = result["as_of"]
+    week_starts = [w["week_start"] for w in result["weeks"]]
+    actual_map = _actual_by_week(
+        organization_id,
+        currency=result["currency"],
+        week_starts=week_starts,
     )
     payload: dict[str, Any] = {
         "weeks": [
@@ -322,6 +356,12 @@ def cash_flow_api_payload(
                 "expected": _money(w["expected_amount"]),
                 "optimistic": _money(w["optimistic_amount"]),
                 "pessimistic": _money(w["pessimistic_amount"]),
+                # Actual only meaningful for weeks that have started.
+                "actual": (
+                    _money(actual_map.get(w["week_start"], ZERO))
+                    if w["week_start"] <= today
+                    else None
+                ),
             }
             for w in result["weeks"]
         ],
@@ -334,8 +374,9 @@ def cash_flow_api_payload(
 
 
 def build_week_detail(result: dict[str, Any], week_start: date) -> dict[str, Any] | None:
-    """NP-114/115: explanation + top invoices for a week (by expected bucket)."""
-    weeks_by_start = {w["week_start"]: w for w in result["weeks"]}
+    """NP-114/115 + NP-441: explanation + top invoices for a week."""
+    weeks_sorted = sorted(result["weeks"], key=lambda w: w["week_start"])
+    weeks_by_start = {w["week_start"]: w for w in weeks_sorted}
     bucket = weeks_by_start.get(week_start)
     if bucket is None:
         return None
@@ -350,6 +391,11 @@ def build_week_detail(result: dict[str, Any], week_start: date) -> dict[str, Any
     expected = _q(bucket["expected_amount"])
     risk_reduction = _q(max(open_total - expected, ZERO))
 
+    high_risk_amount = ZERO
+    for c in contribs:
+        if c.get("customer_risk_status") in {"HIGH", "CRITICAL"}:
+            high_risk_amount += _q(c["open_amount"])
+
     highest = None
     if contribs:
         best = max(contribs, key=lambda c: (c["customer_risk_score"], c["open_amount"]))
@@ -360,7 +406,35 @@ def build_week_detail(result: dict[str, Any], week_start: date) -> dict[str, Any
             "risk_status": best["customer_risk_status"],
         }
 
-    summary = f"Bu hafta {format_tr_money(expected)} bekleniyor."
+    # Week-over-week expected change.
+    idx = next((i for i, w in enumerate(weeks_sorted) if w["week_start"] == week_start), -1)
+    vs_previous_pct = None
+    if idx > 0:
+        prev = _q(weeks_sorted[idx - 1]["expected_amount"])
+        if prev > ZERO:
+            vs_previous_pct = float(
+                ((expected - prev) / prev * Decimal("100")).quantize(Decimal("0.1"))
+            )
+        elif expected == ZERO:
+            vs_previous_pct = 0.0
+        else:
+            vs_previous_pct = 100.0
+
+    summary = f"Bu hafta beklenen tahsilat: {format_tr_money(expected)}"
+
+    insight_what = (
+        f"Bu hafta beklenen tahsilat {format_tr_money(expected)}; "
+        f"yüksek riskli tutar {format_tr_money(high_risk_amount)}."
+    )
+    insight_why = (
+        "Risk skoru ve gecikme olasılığı beklenen tutarı düşürür; "
+        "belirsizlik bandı iyimser–kötümser aralığını gösterir."
+    )
+    insight_action = (
+        f"Öncelik: {highest['name']} müşterisini arayın."
+        if highest
+        else "Bu hafta için öncelikli riskli müşteri yok; yaklaşan vadeleri kontrol edin."
+    )
 
     return {
         "week_start": week_start.isoformat(),
@@ -369,7 +443,14 @@ def build_week_detail(result: dict[str, Any], week_start: date) -> dict[str, Any
         "expected": _money(expected),
         "open_total": _money(open_total),
         "risk_reduction": _money(risk_reduction),
+        "high_risk_amount": _money(high_risk_amount),
+        "vs_previous_week_pct": vs_previous_pct,
         "highest_risk_customer": highest,
+        "insight": {
+            "what": insight_what,
+            "why": insight_why,
+            "action": insight_action,
+        },
         "top_invoices": [
             {
                 "id": c["invoice_id"],

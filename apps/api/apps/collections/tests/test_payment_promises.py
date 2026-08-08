@@ -110,6 +110,34 @@ def test_promise_crud_and_validations(api_client, org_owner):
     else:
         promise_id = create.data["id"]
 
+    # NP-430 follow-up + same-date warning
+    follow = client.post(
+        "/api/payment-promises/",
+        {
+            "customer": customer.id,
+            "promised_date": (today + timedelta(days=5)).isoformat(),
+            "amount": "100.00",
+            "create_follow_up": True,
+            "assigned_to": owner.id,
+        },
+        format="json",
+    )
+    assert follow.status_code == status.HTTP_201_CREATED, follow.data
+    assert follow.data.get("follow_up_task_id")
+    assert "same_date_promises" in (follow.data.get("warnings") or {})
+    assert CollectionTask.objects.filter(id=follow.data["follow_up_task_id"]).exists()
+
+    board = client.get("/api/payment-promises/board/")
+    assert board.status_code == status.HTTP_200_OK
+    assert set(board.data.keys()) >= {
+        "pending",
+        "today",
+        "upcoming",
+        "partial",
+        "fulfilled",
+        "broken",
+    }
+
     patch = client.patch(
         f"/api/payment-promises/{promise_id}/",
         {"amount": "2000.00"},

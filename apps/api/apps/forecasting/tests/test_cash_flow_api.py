@@ -76,6 +76,7 @@ def test_cash_flow_api_shape(api_client, api_org):
         "expected",
         "optimistic",
         "pessimistic",
+        "actual",
     }
     assert isinstance(week["nominal"], str)
 
@@ -96,7 +97,10 @@ def test_cash_flow_week_detail(api_client, api_org):
         currency="TRY",
     )
     payload = cash_flow_api_payload(org.id, weeks=13)
-    week_start = payload["weeks"][0]["week_start"]
+    # Invoice may land in week 0 or later depending on ISO week boundaries.
+    week_start = next(
+        w["week_start"] for w in payload["weeks"] if Decimal(w["expected"]) > 0
+    )
     response = client.get(
         "/api/forecast/cash-flow",
         {"weeks": 13, "week_start": week_start},
@@ -107,7 +111,9 @@ def test_cash_flow_week_detail(api_client, api_org):
     assert detail["open_total"] == "450000.00"
     assert detail["expected"] == "405000.00"  # 90%
     assert detail["risk_reduction"] == "45000.00"
+    assert detail["high_risk_amount"] == "450000.00"
     assert detail["highest_risk_customer"]["name"] == "ABC Elektrik"
+    assert detail["insight"]["what"]
     assert len(detail["top_invoices"]) >= 1
     assert detail["top_invoices"][0]["number"] == "API-2"
 

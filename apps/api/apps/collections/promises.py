@@ -173,6 +173,7 @@ def validate_promise_inputs(
 
     metrics = customer_financial_metrics(customer)
     open_balance = Decimal(str(metrics.get("open_balance") or ZERO))
+    warnings["open_balance"] = str(open_balance)
     if amount > open_balance:
         warnings["amount_exceeds_open_balance"] = {
             "code": "amount_exceeds_open_balance",
@@ -180,6 +181,32 @@ def validate_promise_inputs(
                 f"Söz tutarı ({amount}) açık bakiyeden ({open_balance}) fazla."
             ),
             "open_balance": str(open_balance),
+        }
+
+    # NP-430 — same-date existing promises for this customer.
+    same_date = list(
+        PaymentPromise.objects.for_organization(organization)
+        .filter(customer=customer, promised_date=promised_date)
+        .exclude(status=PaymentPromiseStatus.CANCELLED)
+        .order_by("id")
+        .values("id", "amount", "currency", "status")[:20]
+    )
+    if same_date:
+        warnings["same_date_promises"] = {
+            "code": "same_date_promises",
+            "detail": (
+                f"Bu müşteri için {promised_date.isoformat()} tarihinde "
+                f"{len(same_date)} mevcut söz var."
+            ),
+            "promises": [
+                {
+                    "id": row["id"],
+                    "amount": str(row["amount"]),
+                    "currency": row["currency"],
+                    "status": row["status"],
+                }
+                for row in same_date
+            ],
         }
 
     return warnings
@@ -196,6 +223,9 @@ def create_promise(
     notes: str = "",
     invoice: Invoice | None = None,
     created_by=None,
+    create_follow_up: bool = False,
+    assigned_to=None,
+    follow_up_due_date: date | None = None,
 ) -> tuple[PaymentPromise, dict[str, Any]]:
     amount = Decimal(str(amount)).quantize(Decimal("0.01"))
     currency = (currency or "TRY").upper()
@@ -226,6 +256,29 @@ def create_promise(
         created_by=created_by,
         metadata={"promise_id": promise.id},
     )
+    follow_up = None
+    if create_follow_up:
+        from apps.collections.services import create_task
+
+        due = follow_up_due_date or promised_date
+        assignee = assigned_to or customer.assigned_user or created_by
+        follow_up = create_task(
+            organization=organization,
+            customer=customer,
+            due_date=due,
+            title=f"Ödeme sözü takibi — {customer.name}",
+            description=(
+                f"Söz #{promise.id}: {amount} {currency} / {promised_date}"
+            ),
+            task_type=CollectionTaskType.FOLLOW_UP,
+            assigned_to=assignee,
+            created_by=created_by,
+            invoice=invoice,
+            related_promise=promise,
+            source=CollectionTaskSource.FOLLOW_UP,
+        )
+        warnings["follow_up_task_id"] = follow_up.id
+
     write_audit_log(
         organization=organization,
         actor=created_by,
@@ -233,7 +286,14 @@ def create_promise(
         entity_type="PaymentPromise",
         entity_id=promise.id,
         summary=f"Ödeme sözü {amount} {currency}",
-        changes={"warnings": warnings},
+        changes={
+            "warnings": {
+                k: v
+                for k, v in warnings.items()
+                if k not in {"open_balance", "follow_up_task_id"}
+            },
+            "follow_up_task_id": follow_up.id if follow_up else None,
+        },
     )
     # NP-103: söz verilmesi → risk
     bump_customer_risk(customer)
@@ -443,15 +503,38 @@ def process_broken_promises(*, organization=None, as_of: date | None = None) -> 
 
 
 def promises_calendar(*, organization, as_of: date | None = None) -> dict[str, list[PaymentPromise]]:
-    """NP-094 calendar groups."""
+    """NP-094 calendar groups (legacy 4 buckets)."""
+    board = promises_status_board(organization=organization, as_of=as_of)
+    return {
+        "today": board["today"],
+        "upcoming": board["upcoming"],
+        "broken": board["broken"],
+        "fulfilled": board["fulfilled"] + board["partial"],
+    }
+
+
+def promises_status_board(
+    *, organization, as_of: date | None = None
+) -> dict[str, list[PaymentPromise]]:
+    """NP-431 — Bekliyor / Bugün / Yaklaşıyor / Kısmi / Karşılandı / Bozuldu."""
     today = as_of or timezone.localdate()
     base = (
         PaymentPromise.objects.for_organization(organization)
         .exclude(status=PaymentPromiseStatus.CANCELLED)
-        .select_related("customer", "invoice", "created_by")
+        .select_related(
+            "customer",
+            "customer__assigned_user",
+            "invoice",
+            "created_by",
+        )
         .order_by("promised_date", "id")
     )
+    pending_future = base.filter(
+        status=PaymentPromiseStatus.PENDING,
+        promised_date__gt=today + timedelta(days=7),
+    )
     return {
+        "pending": list(pending_future[:100]),
         "today": list(
             base.filter(status=PaymentPromiseStatus.PENDING, promised_date=today)[:100]
         ),
@@ -459,16 +542,16 @@ def promises_calendar(*, organization, as_of: date | None = None) -> dict[str, l
             base.filter(
                 status=PaymentPromiseStatus.PENDING,
                 promised_date__gt=today,
-                promised_date__lte=today + timedelta(days=30),
+                promised_date__lte=today + timedelta(days=7),
             )[:100]
         ),
-        "broken": list(base.filter(status=PaymentPromiseStatus.BROKEN)[:100]),
-        "fulfilled": list(
-            base.filter(
-                status__in={
-                    PaymentPromiseStatus.FULFILLED,
-                    PaymentPromiseStatus.PARTIALLY_FULFILLED,
-                }
-            ).order_by("-promised_date")[:100]
+        "partial": list(
+            base.filter(status=PaymentPromiseStatus.PARTIALLY_FULFILLED)
+            .order_by("-promised_date")[:100]
         ),
+        "fulfilled": list(
+            base.filter(status=PaymentPromiseStatus.FULFILLED)
+            .order_by("-promised_date")[:100]
+        ),
+        "broken": list(base.filter(status=PaymentPromiseStatus.BROKEN)[:100]),
     }

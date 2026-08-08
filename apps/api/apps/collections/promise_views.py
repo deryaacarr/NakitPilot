@@ -13,7 +13,7 @@ from apps.collections.promise_serializers import (
     PaymentPromiseSerializer,
     PaymentPromiseUpdateSerializer,
 )
-from apps.collections.promises import promises_calendar
+from apps.collections.promises import promises_calendar, promises_status_board
 from apps.organizations.mixins import RequireTenantContextPermission, TenantQuerysetMixin
 from apps.organizations.permissions import HasOrganizationPermission
 from apps.organizations.roles import Permission
@@ -28,7 +28,9 @@ class StandardResultsSetPagination(PageNumberPagination):
 class PaymentPromiseListCreateView(TenantQuerysetMixin, generics.ListCreateAPIView):
     """GET/POST /api/payment-promises/ — NP-090."""
 
-    queryset = PaymentPromise.objects.select_related("customer", "invoice", "created_by")
+    queryset = PaymentPromise.objects.select_related(
+        "customer", "customer__assigned_user", "invoice", "created_by"
+    )
     permission_classes = [
         IsAuthenticated,
         RequireTenantContextPermission,
@@ -70,18 +72,29 @@ class PaymentPromiseListCreateView(TenantQuerysetMixin, generics.ListCreateAPIVi
         promise = serializer.save()
         data = PaymentPromiseSerializer(promise).data
         warnings = serializer.context.get("warnings") or {}
-        if warnings:
-            return Response(
-                {"promise": data, "warnings": warnings},
-                status=status.HTTP_201_CREATED,
-            )
+        follow_up_task_id = warnings.pop("follow_up_task_id", None)
+        open_balance = warnings.pop("open_balance", None)
+        notable = {
+            k: v
+            for k, v in warnings.items()
+            if k in {"amount_exceeds_open_balance", "same_date_promises"}
+        }
+        if notable or follow_up_task_id is not None or open_balance is not None:
+            body: dict = {"promise": data, "warnings": notable}
+            if open_balance is not None:
+                body["open_balance"] = open_balance
+            if follow_up_task_id is not None:
+                body["follow_up_task_id"] = follow_up_task_id
+            return Response(body, status=status.HTTP_201_CREATED)
         return Response(data, status=status.HTTP_201_CREATED)
 
 
 class PaymentPromiseDetailView(TenantQuerysetMixin, generics.RetrieveUpdateAPIView):
     """GET/PATCH /api/payment-promises/{id}/ — NP-090."""
 
-    queryset = PaymentPromise.objects.select_related("customer", "invoice", "created_by")
+    queryset = PaymentPromise.objects.select_related(
+        "customer", "customer__assigned_user", "invoice", "created_by"
+    )
     permission_classes = [
         IsAuthenticated,
         RequireTenantContextPermission,
@@ -137,7 +150,7 @@ class PaymentPromiseCancelView(TenantQuerysetMixin, APIView):
 
 
 class PaymentPromiseCalendarView(TenantQuerysetMixin, APIView):
-    """GET /api/payment-promises/calendar/ — NP-094."""
+    """GET /api/payment-promises/calendar/ — NP-094 (legacy 4 buckets)."""
 
     permission_classes = [
         IsAuthenticated,
@@ -155,5 +168,26 @@ class PaymentPromiseCalendarView(TenantQuerysetMixin, APIView):
                 "upcoming": PaymentPromiseSerializer(board["upcoming"], many=True).data,
                 "broken": PaymentPromiseSerializer(board["broken"], many=True).data,
                 "fulfilled": PaymentPromiseSerializer(board["fulfilled"], many=True).data,
+            }
+        )
+
+
+class PaymentPromiseStatusBoardView(TenantQuerysetMixin, APIView):
+    """GET /api/payment-promises/board/ — NP-431 status cards."""
+
+    permission_classes = [
+        IsAuthenticated,
+        RequireTenantContextPermission,
+        HasOrganizationPermission,
+    ]
+    read_permission = Permission.VIEW_REPORTS
+    write_permission = Permission.MANAGE_COLLECTION_TASK
+
+    def get(self, request):
+        board = promises_status_board(organization=self.get_current_organization())
+        return Response(
+            {
+                key: PaymentPromiseSerializer(items, many=True).data
+                for key, items in board.items()
             }
         )
