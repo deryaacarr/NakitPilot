@@ -8,6 +8,7 @@ from typing import Any
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
 from apps.audit.models import write_audit_log
@@ -205,6 +206,13 @@ def complete_task(
     notes = (outcome_notes or "").strip()
     if not notes:
         raise CollectionValidationError("Görüşme notu zorunlu.", "notes_required")
+
+    # NP-422 — outcome drives follow-up / promise requirements.
+    if outcome == CallOutcome.PROMISE_GIVEN:
+        promise_given = True
+    if outcome == CallOutcome.CALLBACK:
+        create_follow_up = True
+
     if create_follow_up and callback_date is None:
         raise CollectionValidationError(
             "Yeni görev için tekrar aranma tarihi gerekli.",
@@ -660,6 +668,63 @@ def today_board(*, organization, as_of: date | None = None) -> dict[str, list[Co
         "today": due_today,
         "upcoming": upcoming,
         "completed": completed,
+    }
+
+
+def day_summary(
+    *,
+    organization,
+    actor=None,
+    as_of: date | None = None,
+    scope: str = "mine",
+) -> dict[str, Any]:
+    """NP-424 — end-of-day collection agent summary."""
+    today = as_of or timezone.localdate()
+    tasks = CollectionTask.objects.for_organization(organization).filter(
+        status=CollectionTaskStatus.COMPLETED,
+        completed_at__date=today,
+    )
+    if scope != "org" and actor is not None:
+        tasks = tasks.filter(Q(assigned_to=actor) | Q(assigned_to__isnull=True))
+
+    reached_outcomes = [
+        CallOutcome.REACHED,
+        CallOutcome.PAYMENT_MADE,
+        CallOutcome.PROMISE_GIVEN,
+        CallOutcome.DISPUTED,
+        CallOutcome.CALLBACK,
+    ]
+    tasks_completed = tasks.count()
+    customers_reached = (
+        tasks.filter(outcome__in=reached_outcomes)
+        .values("customer_id")
+        .distinct()
+        .count()
+    )
+    callback_customers = (
+        tasks.filter(outcome=CallOutcome.CALLBACK)
+        .values("customer_id")
+        .distinct()
+        .count()
+    )
+
+    promises = PaymentPromise.objects.for_organization(organization).filter(
+        created_at__date=today,
+    )
+    if scope != "org" and actor is not None:
+        promises = promises.filter(created_by=actor)
+    promise_agg = promises.aggregate(total=Sum("amount"), count=Count("id"))
+    potential = promise_agg["total"] or ZERO
+
+    return {
+        "as_of": today.isoformat(),
+        "scope": "org" if scope == "org" else "mine",
+        "tasks_completed": tasks_completed,
+        "customers_reached": customers_reached,
+        "promises_taken": int(promise_agg["count"] or 0),
+        "potential_collection": str(potential),
+        "currency": "TRY",
+        "callback_customers": callback_customers,
     }
 
 

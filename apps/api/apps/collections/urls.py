@@ -5,6 +5,7 @@ from apps.collections.views import (
     CollectionTaskCancelView,
     CollectionTaskCompleteView,
     CollectionTaskConfirmNotesView,
+    CollectionTaskDaySummaryView,
     CollectionTaskDetailView,
     CollectionTaskListCreateView,
     CollectionTaskOfflineSyncView,
@@ -16,6 +17,11 @@ from apps.collections.views import (
 urlpatterns = [
     path("", CollectionTaskListCreateView.as_view(), name="collection-task-list"),
     path("today/", CollectionTaskTodayBoardView.as_view(), name="collection-task-today"),
+    path(
+        "day-summary/",
+        CollectionTaskDaySummaryView.as_view(),
+        name="collection-task-day-summary",
+    ),
     path(
         "offline-sync/",
         CollectionTaskOfflineSyncView.as_view(),

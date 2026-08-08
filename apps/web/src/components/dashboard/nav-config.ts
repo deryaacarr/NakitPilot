@@ -39,7 +39,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "collections",
     label: "Tahsilat",
     items: [
-      { href: "/collections", label: "Bugünün Görevleri", icon: "collections", exact: true },
+      { href: "/collections", label: "Günlük Çalışma", icon: "collections", exact: true },
       { href: "/collections/tasks", label: "Tüm Görevler", icon: "collections" },
       { href: "/promises", label: "Ödeme Sözleri", icon: "calendar" },
       { href: "/collections/calendar", label: "Tahsilat Takvimi", icon: "calendar" },

@@ -75,7 +75,7 @@ describe("CompleteTaskModal", () => {
       </ToastProvider>,
     );
     const dialog = screen.getByRole("dialog");
-    await user.type(within(dialog).getByLabelText(/Görüşme notu/), "Müşteri ödeyecek");
+    await user.type(within(dialog).getByLabelText(/^Not/), "Müşteri ödeyecek");
     await user.click(within(dialog).getByRole("button", { name: "Kaydet" }));
     expect(completeCollectionTask).toHaveBeenCalledWith(
       9,
@@ -84,6 +84,21 @@ describe("CompleteTaskModal", () => {
         outcome_notes: "Müşteri ödeyecek",
       }),
     );
-    await screen.findByRole("dialog"); // still mounted until parent closes
+  });
+
+  it("shows promise fields when PROMISE_GIVEN selected", async () => {
+    const user = userEvent.setup();
+    render(
+      <ToastProvider>
+        <CompleteTaskModal task={task} onClose={() => undefined} onDone={() => undefined} />
+      </ToastProvider>,
+    );
+    const dialog = screen.getByRole("dialog");
+    await user.selectOptions(
+      within(dialog).getByLabelText(/Görüşme sonucu/),
+      "PROMISE_GIVEN",
+    );
+    expect(within(dialog).getByLabelText(/Söz tutarı/)).toBeInTheDocument();
+    expect(within(dialog).getByLabelText(/Söz tarihi/)).toBeInTheDocument();
   });
 });

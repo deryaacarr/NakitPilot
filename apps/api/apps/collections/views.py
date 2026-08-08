@@ -16,7 +16,7 @@ from apps.collections.serializers import (
     ConfirmStructuredNotesSerializer,
     ParseNotesSerializer,
 )
-from apps.collections.services import customer_timeline, today_board
+from apps.collections.services import customer_timeline, day_summary, today_board
 from apps.organizations.mixins import RequireTenantContextPermission, TenantQuerysetMixin
 from apps.organizations.permissions import HasOrganizationPermission
 from apps.organizations.roles import Permission
@@ -206,6 +206,30 @@ class CollectionTaskTodayBoardView(TenantQuerysetMixin, APIView):
                 "upcoming": CollectionTaskSerializer(board["upcoming"], many=True).data,
                 "completed": CollectionTaskSerializer(board["completed"], many=True).data,
             }
+        )
+
+
+class CollectionTaskDaySummaryView(TenantQuerysetMixin, APIView):
+    """GET /api/collection-tasks/day-summary/ — NP-424 end-of-day summary."""
+
+    permission_classes = [
+        IsAuthenticated,
+        RequireTenantContextPermission,
+        HasOrganizationPermission,
+    ]
+    read_permission = Permission.VIEW_REPORTS
+    write_permission = Permission.MANAGE_COLLECTION_TASK
+
+    def get(self, request):
+        scope = (request.query_params.get("scope") or "mine").strip().lower()
+        if scope not in {"mine", "org"}:
+            scope = "mine"
+        return Response(
+            day_summary(
+                organization=self.get_current_organization(),
+                actor=request.user,
+                scope=scope,
+            )
         )
 
 

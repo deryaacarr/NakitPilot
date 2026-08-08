@@ -44,6 +44,7 @@ export type CollectionTask = {
   assigned_to: number | null;
   assigned_to_email?: string | null;
   assigned_to_name?: string | null;
+  open_balance?: string;
   overdue_balance: string;
   overdue_days: number | null;
   last_contact_at: string | null;
@@ -63,6 +64,21 @@ export type TodayBoard = {
   upcoming: CollectionTask[];
   completed: CollectionTask[];
 };
+
+export type BoardGroupKey = keyof TodayBoard;
+
+export type DaySummary = {
+  as_of: string;
+  scope: "mine" | "org";
+  tasks_completed: number;
+  customers_reached: number;
+  promises_taken: number;
+  potential_collection: string;
+  currency: string;
+  callback_customers: number;
+};
+
+export type WorkViewMode = "list" | "kanban" | "calendar";
 
 export type TimelineEvent = {
   id: string;

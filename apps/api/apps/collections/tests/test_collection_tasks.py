@@ -237,3 +237,42 @@ def test_customer_timeline(api_client, org_owner):
     assert timeline.status_code == status.HTTP_200_OK
     kinds = {e["kind"] for e in timeline.data["results"]}
     assert "TASK_COMPLETED" in kinds
+
+
+@pytest.mark.django_db
+def test_day_summary_np424(api_client, org_owner):
+    org, owner, customer = org_owner
+    client = _auth(api_client, owner, org)
+    today = date.today()
+
+    create = client.post(
+        "/api/collection-tasks/",
+        {
+            "customer": customer.id,
+            "due_date": today.isoformat(),
+            "title": "Gün sonu",
+            "assigned_to": owner.id,
+        },
+        format="json",
+    )
+    task_id = create.data["id"] if "id" in create.data else create.data["task"]["id"]
+    complete = client.post(
+        f"/api/collection-tasks/{task_id}/complete/",
+        {
+            "outcome": "PROMISE_GIVEN",
+            "outcome_notes": "Cuma ödeyecek",
+            "promise_amount": "320000.00",
+            "promise_date": (today + timedelta(days=3)).isoformat(),
+            "create_follow_up": True,
+            "callback_date": (today + timedelta(days=4)).isoformat(),
+        },
+        format="json",
+    )
+    assert complete.status_code == status.HTTP_200_OK, complete.data
+
+    summary = client.get("/api/collection-tasks/day-summary/")
+    assert summary.status_code == status.HTTP_200_OK, summary.data
+    assert summary.data["tasks_completed"] >= 1
+    assert summary.data["customers_reached"] >= 1
+    assert summary.data["promises_taken"] >= 1
+    assert Decimal(summary.data["potential_collection"]) >= Decimal("320000.00")

@@ -1,6 +1,12 @@
 import { apiRequest } from "@/lib/api/client";
 
-import type { CollectionTask, CompleteTaskPayload, TimelineEvent, TodayBoard } from "./types";
+import type {
+  CollectionTask,
+  CompleteTaskPayload,
+  DaySummary,
+  TimelineEvent,
+  TodayBoard,
+} from "./types";
 
 export type CallPrepPayload = {
   customer_id: number;
@@ -114,10 +120,36 @@ export function fetchTodayBoard() {
   return apiRequest<TodayBoard>("/api/collection-tasks/today/");
 }
 
+export function fetchDaySummary(scope: "mine" | "org" = "mine") {
+  return apiRequest<DaySummary>("/api/collection-tasks/day-summary/", {
+    query: { scope },
+  });
+}
+
 export function listCollectionTasks(query?: Record<string, string | number | boolean | null>) {
   return apiRequest<{ count: number; results: CollectionTask[] }>("/api/collection-tasks/", {
     query,
   });
+}
+
+export function updateCollectionTask(
+  id: number,
+  body: Partial<{
+    status: string;
+    due_date: string;
+    assigned_to: number | null;
+    title: string;
+    description: string;
+    task_type: string;
+  }>,
+) {
+  return apiRequest<CollectionTask | { task: CollectionTask; warning?: string }>(
+    `/api/collection-tasks/${id}/`,
+    {
+      method: "PATCH",
+      body,
+    },
+  );
 }
 
 export function completeCollectionTask(id: number, body: CompleteTaskPayload) {

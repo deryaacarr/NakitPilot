@@ -29,6 +29,7 @@ class CollectionTaskSerializer(serializers.ModelSerializer):
     customer_phone = serializers.SerializerMethodField()
     assigned_to_email = serializers.EmailField(source="assigned_to.email", read_only=True)
     assigned_to_name = serializers.SerializerMethodField()
+    open_balance = serializers.SerializerMethodField()
     overdue_balance = serializers.SerializerMethodField()
     overdue_days = serializers.SerializerMethodField()
     last_contact_at = serializers.DateTimeField(source="customer.last_contact_at", read_only=True)
@@ -65,6 +66,7 @@ class CollectionTaskSerializer(serializers.ModelSerializer):
             "completed_at",
             "cancelled_at",
             "cancellation_reason",
+            "open_balance",
             "overdue_balance",
             "overdue_days",
             "last_contact_at",
@@ -87,6 +89,7 @@ class CollectionTaskSerializer(serializers.ModelSerializer):
             "customer_phone",
             "assigned_to_email",
             "assigned_to_name",
+            "open_balance",
             "overdue_balance",
             "overdue_days",
             "last_contact_at",
@@ -110,11 +113,20 @@ class CollectionTaskSerializer(serializers.ModelSerializer):
         full = f"{user.first_name} {user.last_name}".strip()
         return full or user.email
 
+    def _metrics(self, obj: CollectionTask) -> dict:
+        cache = self.context.setdefault("_task_metrics", {})
+        if obj.customer_id not in cache:
+            cache[obj.customer_id] = customer_financial_metrics(obj.customer)
+        return cache[obj.customer_id]
+
+    def get_open_balance(self, obj: CollectionTask) -> str:
+        return str(self._metrics(obj)["open_balance"])
+
     def get_overdue_balance(self, obj: CollectionTask) -> str:
-        return str(customer_financial_metrics(obj.customer)["overdue_balance"])
+        return str(self._metrics(obj)["overdue_balance"])
 
     def get_overdue_days(self, obj: CollectionTask) -> int | None:
-        return customer_financial_metrics(obj.customer)["oldest_overdue_days"]
+        return self._metrics(obj)["oldest_overdue_days"]
 
     def get_payment_promise(self, obj: CollectionTask) -> dict | None:
         promise = obj.related_promise
