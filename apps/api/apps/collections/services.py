@@ -663,11 +663,23 @@ def today_board(*, organization, as_of: date | None = None) -> dict[str, list[Co
     }
 
 
-def customer_timeline(*, organization, customer_id: int, limit: int = 100) -> list[dict[str, Any]]:
-    """NP-086 chronological timeline for customer detail."""
+def customer_timeline(
+    *,
+    organization,
+    customer_id: int,
+    limit: int = 100,
+    kinds: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """NP-086 / NP-412 chronological timeline for customer detail."""
+    from apps.collections.models import Dispute
     from apps.payments.models import Payment
+    from apps.risk.models import RiskSnapshot
 
     events: list[dict[str, Any]] = []
+    kind_filter = {k.upper() for k in kinds} if kinds else None
+
+    def _allow(kind: str) -> bool:
+        return kind_filter is None or kind.upper() in kind_filter
 
     activities = (
         CollectionActivity.objects.for_organization(organization)
@@ -675,6 +687,8 @@ def customer_timeline(*, organization, customer_id: int, limit: int = 100) -> li
         .select_related("created_by", "task")[:limit]
     )
     for row in activities:
+        if not _allow(row.activity_type):
+            continue
         events.append(
             {
                 "id": f"activity-{row.id}",
@@ -690,49 +704,137 @@ def customer_timeline(*, organization, customer_id: int, limit: int = 100) -> li
             }
         )
 
-    promises = (
-        PaymentPromise.objects.for_organization(organization)
-        .filter(customer_id=customer_id)
-        .order_by("-created_at")[:limit]
-    )
-    for row in promises:
-        events.append(
-            {
-                "id": f"promise-{row.id}",
-                "kind": CollectionActivityType.PROMISE,
-                "label": "Ödeme sözü",
-                "summary": f"{row.amount} {row.currency} — {row.status}",
-                "notes": row.notes,
-                "occurred_at": row.created_at.isoformat(),
-                "actor": row.created_by.email if row.created_by_id else None,
-                "metadata": {
-                    "promised_date": row.promised_date.isoformat(),
-                    "status": row.status,
-                },
-            }
+    if _allow(CollectionActivityType.PROMISE) or _allow("PROMISE"):
+        promises = (
+            PaymentPromise.objects.for_organization(organization)
+            .filter(customer_id=customer_id)
+            .order_by("-created_at")[:limit]
         )
+        for row in promises:
+            events.append(
+                {
+                    "id": f"promise-{row.id}",
+                    "kind": CollectionActivityType.PROMISE,
+                    "label": "Ödeme sözü",
+                    "summary": f"{row.amount} {row.currency} — {row.status}",
+                    "notes": row.notes,
+                    "occurred_at": row.created_at.isoformat(),
+                    "actor": row.created_by.email if row.created_by_id else None,
+                    "metadata": {
+                        "promised_date": row.promised_date.isoformat(),
+                        "status": row.status,
+                    },
+                }
+            )
 
-    payments = (
-        Payment.objects.for_organization(organization)
-        .filter(customer_id=customer_id, cancelled_at__isnull=True)
-        .order_by("-payment_date", "-id")[:limit]
-    )
-    for row in payments:
-        occurred = timezone.make_aware(
-            datetime.combine(row.payment_date, datetime.min.time())
+    if _allow(CollectionActivityType.PAYMENT) or _allow("PAYMENT"):
+        payments = (
+            Payment.objects.for_organization(organization)
+            .filter(customer_id=customer_id, cancelled_at__isnull=True)
+            .order_by("-payment_date", "-id")[:limit]
         )
-        events.append(
-            {
-                "id": f"payment-{row.id}",
-                "kind": CollectionActivityType.PAYMENT,
-                "label": "Ödeme",
-                "summary": f"{row.amount} {row.currency}",
-                "notes": row.notes,
-                "occurred_at": occurred.isoformat(),
-                "actor": row.recorded_by.email if row.recorded_by_id else None,
-                "metadata": {"payment_id": row.id, "method": row.method},
-            }
+        for row in payments:
+            occurred = timezone.make_aware(
+                datetime.combine(row.payment_date, datetime.min.time())
+            )
+            events.append(
+                {
+                    "id": f"payment-{row.id}",
+                    "kind": CollectionActivityType.PAYMENT,
+                    "label": "Ödeme",
+                    "summary": f"{row.amount} {row.currency}",
+                    "notes": row.notes,
+                    "occurred_at": occurred.isoformat(),
+                    "actor": row.recorded_by.email if row.recorded_by_id else None,
+                    "metadata": {"payment_id": row.id, "method": row.method},
+                }
+            )
+
+    if _allow("TASK") or _allow(CollectionActivityType.TASK_COMPLETED):
+        tasks = (
+            CollectionTask.objects.for_organization(organization)
+            .filter(customer_id=customer_id)
+            .select_related("assigned_to", "created_by")
+            .order_by("-created_at")[:limit]
         )
+        for row in tasks:
+            kind = (
+                CollectionActivityType.TASK_COMPLETED
+                if row.status == CollectionTaskStatus.COMPLETED
+                else "TASK"
+            )
+            if not _allow(kind) and not _allow("TASK"):
+                continue
+            events.append(
+                {
+                    "id": f"task-{row.id}",
+                    "kind": kind,
+                    "label": "Görev",
+                    "summary": row.title or f"Görev #{row.id}",
+                    "notes": row.description or row.outcome_notes or "",
+                    "occurred_at": (row.completed_at or row.created_at).isoformat(),
+                    "actor": (
+                        row.assigned_to.email
+                        if row.assigned_to_id
+                        else (row.created_by.email if row.created_by_id else None)
+                    ),
+                    "metadata": {"status": row.status, "due_date": row.due_date.isoformat()},
+                }
+            )
+
+    if _allow("DISPUTE"):
+        disputes = (
+            Dispute.objects.for_organization(organization)
+            .filter(customer_id=customer_id)
+            .order_by("-created_at")[:limit]
+        )
+        for row in disputes:
+            events.append(
+                {
+                    "id": f"dispute-{row.id}",
+                    "kind": "DISPUTE",
+                    "label": "İtiraz",
+                    "summary": f"{row.status} — {row.get_category_display()}",
+                    "notes": row.description or "",
+                    "occurred_at": row.created_at.isoformat(),
+                    "actor": row.created_by.email if row.created_by_id else None,
+                    "metadata": {"status": row.status, "category": row.category},
+                }
+            )
+
+    if _allow("RISK_CHANGE"):
+        snaps = list(
+            RiskSnapshot.objects.for_organization(organization)
+            .filter(customer_id=customer_id)
+            .order_by("calculated_at")[:limit]
+        )
+        prev_score = None
+        for row in snaps:
+            delta = None if prev_score is None else int(row.score) - int(prev_score)
+            prev_score = row.score
+            events.append(
+                {
+                    "id": f"risk-{row.id}",
+                    "kind": "RISK_CHANGE",
+                    "label": "Risk değişimi",
+                    "summary": (
+                        f"Skor {row.score} ({row.risk_level})"
+                        + (
+                            f" · {'+' if delta and delta > 0 else ''}{delta}"
+                            if delta is not None
+                            else ""
+                        )
+                    ),
+                    "notes": "",
+                    "occurred_at": row.calculated_at.isoformat(),
+                    "actor": None,
+                    "metadata": {
+                        "score": row.score,
+                        "level": row.risk_level,
+                        "delta": delta,
+                    },
+                }
+            )
 
     events.sort(key=lambda e: e["occurred_at"], reverse=True)
     return events[:limit]

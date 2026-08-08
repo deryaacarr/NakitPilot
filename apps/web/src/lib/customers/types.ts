@@ -38,10 +38,32 @@ export type Customer = {
   disputed_balance?: string;
   avg_delay_days: number | null;
   oldest_overdue_days: number | null;
+  last_payment_date?: string | null;
+  last_payment_amount?: string | null;
+  last_payment_currency?: string | null;
   primary_contact_name: string | null;
   created_at: string;
   updated_at: string;
   contacts?: CustomerContact[];
+};
+
+export type FinancialSummarySeries = {
+  month: string;
+  amount?: string;
+  days?: number | null;
+  rate?: number | null;
+  paid_count?: number;
+};
+
+export type CustomerFinancialSummary = {
+  as_of: string;
+  currency: string;
+  monthly_invoices: FinancialSummarySeries[];
+  monthly_payments: FinancialSummarySeries[];
+  open_balance_trend: FinancialSummarySeries[];
+  avg_delay_trend: FinancialSummarySeries[];
+  on_time_payment_rate: FinancialSummarySeries[];
+  insights: string[];
 };
 
 export type CustomerInput = {

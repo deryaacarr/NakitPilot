@@ -240,6 +240,34 @@ class CustomerFeaturesView(APIView):
         return Response(extract_customer_features(customer))
 
 
+class CustomerFinancialSummaryView(APIView):
+    """GET /api/customers/{id}/financial-summary/ — NP-413 charts + insights."""
+
+    permission_classes = [
+        IsAuthenticated,
+        RequireTenantContextPermission,
+        HasOrganizationPermission,
+    ]
+    read_permission = Permission.VIEW_REPORTS
+    write_permission = Permission.VIEW_REPORTS
+
+    def get(self, request, pk: int):
+        from apps.customers.financial_summary import customer_financial_summary
+
+        organization = get_request_organization(request)
+        if organization is None:
+            return Response({"detail": "Organization required."}, status=403)
+        customer = Customer.objects.filter(pk=pk, organization=organization).first()
+        if customer is None:
+            return Response({"detail": "Not found."}, status=404)
+        months = request.query_params.get("months") or "12"
+        try:
+            months_n = max(3, min(24, int(months)))
+        except ValueError:
+            months_n = 12
+        return Response(customer_financial_summary(customer, months=months_n))
+
+
 class CustomerContactListCreateView(TenantQuerysetMixin, generics.ListCreateAPIView):
     serializer_class = CustomerContactSerializer
     permission_classes = [

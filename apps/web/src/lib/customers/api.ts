@@ -4,6 +4,7 @@ import type {
   Customer,
   CustomerContact,
   CustomerContactInput,
+  CustomerFinancialSummary,
   CustomerInput,
   CustomerListParams,
   Paginated,
@@ -73,4 +74,11 @@ export function fetchCustomerRiskHistory(
 
 export function fetchCustomerRiskExplanation(customerId: number | string) {
   return apiRequest<RiskExplanation>(`/api/customers/${customerId}/risk-explanation/`);
+}
+
+export function fetchCustomerFinancialSummary(customerId: number | string, months = 12) {
+  return apiRequest<CustomerFinancialSummary>(
+    `/api/customers/${customerId}/financial-summary/`,
+    { query: { months } },
+  );
 }

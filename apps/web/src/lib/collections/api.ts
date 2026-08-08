@@ -150,8 +150,20 @@ export function bulkAssignTasks(taskIds: number[], assignedTo: number) {
   });
 }
 
-export function fetchCustomerTimeline(customerId: number) {
-  return apiRequest<{ results: TimelineEvent[] }>(`/api/customers/${customerId}/timeline/`);
+export function fetchCustomerTimeline(customerId: number, kinds?: string[]) {
+  return apiRequest<{ results: TimelineEvent[] }>(`/api/customers/${customerId}/timeline/`, {
+    query: kinds?.length ? { kinds: kinds.join(",") } : undefined,
+  });
+}
+
+export function addCustomerTimelineNote(
+  customerId: number,
+  body: { notes: string; summary?: string },
+) {
+  return apiRequest<TimelineEvent>(`/api/customers/${customerId}/timeline/`, {
+    method: "POST",
+    body,
+  });
 }
 
 export function fetchPrepareCall(taskId: number) {

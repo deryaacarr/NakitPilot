@@ -14,6 +14,7 @@ from apps.customers.views import (
     CustomerContactListCreateView,
     CustomerDetailView,
     CustomerFeaturesView,
+    CustomerFinancialSummaryView,
     CustomerListCreateView,
 )
 from apps.risk.views import (
@@ -69,6 +70,11 @@ urlpatterns = [
         "<int:pk>/features/",
         CustomerFeaturesView.as_view(),
         name="customer-features",
+    ),
+    path(
+        "<int:pk>/financial-summary/",
+        CustomerFinancialSummaryView.as_view(),
+        name="customer-financial-summary",
     ),
     path(
         "<int:customer_id>/contacts/",

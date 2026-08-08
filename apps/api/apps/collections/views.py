@@ -337,7 +337,7 @@ class CollectionTaskConfirmNotesView(TenantQuerysetMixin, APIView):
 
 
 class CustomerTimelineView(APIView):
-    """GET /api/customers/{id}/timeline/ — NP-086."""
+    """GET/POST /api/customers/{id}/timeline/ — NP-086 / NP-412."""
 
     permission_classes = [
         IsAuthenticated,
@@ -355,8 +355,51 @@ class CustomerTimelineView(APIView):
 
         if not Customer.objects.for_organization(organization).filter(pk=pk).exists():
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
-        events = customer_timeline(organization=organization, customer_id=pk)
+        kinds_raw = (request.query_params.get("kinds") or "").strip()
+        kinds = [k.strip() for k in kinds_raw.split(",") if k.strip()] or None
+        events = customer_timeline(
+            organization=organization, customer_id=pk, kinds=kinds
+        )
         return Response({"results": events})
+
+    def post(self, request, pk: int):
+        """Add a NOTE activity (NP-410 quick action)."""
+        organization = get_request_organization(request)
+        if organization is None:
+            return Response({"detail": "Organization required."}, status=400)
+        from apps.collections.models import CollectionActivity, CollectionActivityType
+        from apps.customers.models import Customer
+
+        try:
+            customer = Customer.objects.for_organization(organization).get(pk=pk)
+        except Customer.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        notes = (request.data.get("notes") or request.data.get("text") or "").strip()
+        summary = (request.data.get("summary") or "Müşteri notu").strip()
+        if not notes:
+            return Response({"detail": "notes required."}, status=400)
+
+        activity = CollectionActivity.objects.create(
+            organization=organization,
+            customer=customer,
+            activity_type=CollectionActivityType.NOTE,
+            summary=summary[:255],
+            notes=notes,
+            created_by=request.user,
+        )
+        return Response(
+            {
+                "id": f"activity-{activity.id}",
+                "kind": activity.activity_type,
+                "label": "Not",
+                "summary": activity.summary,
+                "notes": activity.notes,
+                "occurred_at": activity.occurred_at.isoformat(),
+                "actor": request.user.email,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class CustomerPaymentPlanSuggestView(APIView):

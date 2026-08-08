@@ -64,6 +64,9 @@ class CustomerSerializer(serializers.ModelSerializer):
     avg_delay_days = serializers.SerializerMethodField()
     oldest_overdue_days = serializers.SerializerMethodField()
     primary_contact_name = serializers.SerializerMethodField()
+    last_payment_date = serializers.SerializerMethodField()
+    last_payment_amount = serializers.SerializerMethodField()
+    last_payment_currency = serializers.SerializerMethodField()
 
     class Meta:
         model = Customer
@@ -97,6 +100,9 @@ class CustomerSerializer(serializers.ModelSerializer):
             "unallocated_payment_balance",
             "avg_delay_days",
             "oldest_overdue_days",
+            "last_payment_date",
+            "last_payment_amount",
+            "last_payment_currency",
             "primary_contact_name",
             "created_at",
             "updated_at",
@@ -117,6 +123,9 @@ class CustomerSerializer(serializers.ModelSerializer):
             "unallocated_payment_balance",
             "avg_delay_days",
             "oldest_overdue_days",
+            "last_payment_date",
+            "last_payment_amount",
+            "last_payment_currency",
             "primary_contact_name",
         )
 
@@ -144,6 +153,15 @@ class CustomerSerializer(serializers.ModelSerializer):
 
     def get_oldest_overdue_days(self, obj: Customer) -> int | None:
         return self._metrics(obj)["oldest_overdue_days"]
+
+    def get_last_payment_date(self, obj: Customer) -> str | None:
+        return self._metrics(obj).get("last_payment_date")
+
+    def get_last_payment_amount(self, obj: Customer) -> str | None:
+        return self._metrics(obj).get("last_payment_amount")
+
+    def get_last_payment_currency(self, obj: Customer) -> str | None:
+        return self._metrics(obj).get("last_payment_currency")
 
     def get_primary_contact_name(self, obj: Customer) -> str | None:
         if hasattr(obj, "primary_contact_name_anno"):

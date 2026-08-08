@@ -41,6 +41,8 @@ export function AllTasksBoard() {
 
   useEffect(() => {
     if (searchParams.get("create") === "1") setCreateOpen(true);
+    const preselect = searchParams.get("customer");
+    if (preselect) setCustomer(preselect);
   }, [searchParams]);
 
   useEffect(() => {

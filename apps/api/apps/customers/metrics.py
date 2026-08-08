@@ -104,6 +104,13 @@ def customer_financial_metrics(customer: Any) -> dict[str, Any]:
     if delays:
         avg_delay = int(round(sum(delays) / len(delays)))
 
+    last_payment = (
+        Payment.objects.filter(customer=customer, cancelled_at__isnull=True)
+        .order_by("-payment_date", "-id")
+        .values("payment_date", "amount", "currency")
+        .first()
+    )
+
     return {
         "open_balance": open_balance,
         "overdue_balance": overdue_balance,
@@ -111,4 +118,13 @@ def customer_financial_metrics(customer: Any) -> dict[str, Any]:
         "unallocated_payment_balance": unallocated,
         "avg_delay_days": avg_delay,
         "oldest_overdue_days": oldest_overdue,
+        "last_payment_date": (
+            last_payment["payment_date"].isoformat() if last_payment else None
+        ),
+        "last_payment_amount": (
+            str(last_payment["amount"]) if last_payment else None
+        ),
+        "last_payment_currency": (
+            last_payment["currency"] if last_payment else None
+        ),
     }
