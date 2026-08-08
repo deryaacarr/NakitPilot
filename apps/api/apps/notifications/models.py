@@ -174,6 +174,37 @@ def create_dashboard_alert(
     return alert
 
 
+class NotificationPreference(TenantModel):
+    """NP-462 — per-user in-app notification preferences."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notification_preferences",
+    )
+    # NotificationType values the user wants muted (CRITICAL never muted).
+    muted_types = models.JSONField(default=list, blank=True)
+    mute_info = models.BooleanField(default=False)
+    mute_system = models.BooleanField(default=False)
+    group_by_customer = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at",)
+        verbose_name = "notification preference"
+        verbose_name_plural = "notification preferences"
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "user"),
+                name="notifications_pref_org_user_uniq",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"NotificationPreference<{self.user_id}>"
+
+
 class PushSubscription(TenantModel):
     """NP-344 — Web Push subscription endpoint."""
 

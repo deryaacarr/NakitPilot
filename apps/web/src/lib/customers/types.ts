@@ -30,6 +30,7 @@ export type Customer = {
   risk_score: number;
   assigned_user: number | null;
   assigned_user_name: string | null;
+  collection_strategy?: string;
   notes: string;
   last_contact_at: string | null;
   is_active: boolean;
@@ -79,6 +80,7 @@ export type CustomerInput = {
   risk_status?: RiskStatus;
   risk_score?: number;
   assigned_user?: number | null;
+  collection_strategy?: string;
   notes?: string;
   is_active?: boolean;
 };

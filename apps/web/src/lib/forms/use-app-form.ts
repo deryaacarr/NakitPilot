@@ -31,6 +31,9 @@ export function useAppForm<TValues extends FieldValues>(
   const { schema, defaultValues, warnUnsavedChanges = true, ...rest } = options;
 
   const form = useForm<TValues>({
+    // NP-451 — validate inline on blur; revalidate as user fixes fields.
+    mode: "onBlur",
+    reValidateMode: "onChange",
     ...rest,
     // zodResolver generics vary across Zod major versions; schema is validated at runtime.
     resolver: zodResolver(schema as never),

@@ -32,6 +32,24 @@ describe("invoiceCreateSchema", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it("rejects due date before invoice date", () => {
+    const result = invoiceCreateSchema.safeParse({
+      customer: "12",
+      number: "INV-1",
+      invoice_date: "2026-07-31",
+      due_date: "2026-07-01",
+      currency: "TRY",
+      subtotal_amount: "100.00",
+      tax_amount: "18.00",
+      total_amount: "118.00",
+      description: "",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) => i.path.includes("due_date"))).toBe(true);
+    }
+  });
 });
 
 describe("sumMoney", () => {

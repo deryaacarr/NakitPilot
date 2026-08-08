@@ -1,25 +1,64 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { z } from "zod";
 
+import {
+  AppForm,
+  FormRootError,
+  FormSectionPanel,
+  FormSectionTabs,
+  PaymentFinancialHint,
+  SubmitButton,
+} from "@/components/forms";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { listCustomers } from "@/lib/customers/api";
 import type { Customer } from "@/lib/customers/types";
+import { applyBackendFieldErrors, useAppForm } from "@/lib/forms";
 import { createPayment } from "@/lib/payments/api";
+
+const paymentSchema = z.object({
+  customer: z.string().min(1, "Müşteri seçin"),
+  payment_date: z.string().min(1, "Tarih gerekli"),
+  amount: z
+    .string()
+    .min(1, "Tutar gerekli")
+    .refine((v) => !Number.isNaN(Number(v)) && Number(v) > 0, {
+      message: "Tutar sıfırdan büyük olmalı",
+    }),
+  reference: z.string(),
+  notes: z.string(),
+});
+
+type FormValues = z.infer<typeof paymentSchema>;
+type SectionId = "customer" | "payment" | "notes";
+
+const SECTIONS: { id: SectionId; label: string }[] = [
+  { id: "customer", label: "Müşteri" },
+  { id: "payment", label: "Ödeme" },
+  { id: "notes", label: "Notlar" },
+];
 
 export function PaymentCreateForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [customer, setCustomer] = useState("");
-  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [amount, setAmount] = useState("");
-  const [reference, setReference] = useState("");
-  const [notes, setNotes] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [section, setSection] = useState<SectionId>("customer");
+
+  const form = useAppForm({
+    schema: paymentSchema,
+    defaultValues: {
+      customer: "",
+      payment_date: new Date().toISOString().slice(0, 10),
+      amount: "",
+      reference: "",
+      notes: "",
+    },
+  });
 
   useEffect(() => {
     void listCustomers({ page_size: 100 }).then((res) => {
@@ -27,69 +66,108 @@ export function PaymentCreateForm() {
     });
   }, []);
 
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!customer || !amount) return;
-    setSaving(true);
+  const {
+    register,
+    watch,
+    formState: { errors, isSubmitting },
+  } = form;
+
+  const customerId = watch("customer");
+  const amount = watch("amount");
+  const selected = useMemo(
+    () => customers.find((c) => String(c.id) === customerId) || null,
+    [customers, customerId],
+  );
+
+  const onSubmit = async (values: FormValues) => {
     const res = await createPayment({
-      customer: Number(customer),
-      payment_date: paymentDate,
-      amount,
-      reference,
-      notes,
+      customer: Number(values.customer),
+      payment_date: values.payment_date,
+      amount: values.amount,
+      reference: values.reference,
+      notes: values.notes,
       auto_allocate: true,
     });
-    setSaving(false);
     if (!res.ok) {
+      applyBackendFieldErrors(form.setError, res.error);
       toast({ title: "Ödeme kaydedilemedi", description: res.error.message, tone: "error" });
       return;
     }
+    form.reset(values);
     toast({ title: "Ödeme kaydedildi", tone: "success" });
     router.push("/payments");
-  }
+  };
 
   return (
-    <form onSubmit={onSubmit} className="max-w-lg space-y-4">
-      <label className="block space-y-1.5 text-sm">
-        <span className="font-medium text-foreground">Müşteri</span>
-        <select
-          required
-          value={customer}
-          onChange={(e) => setCustomer(e.target.value)}
-          className="h-10 w-full rounded-[var(--radius-md)] border border-border-default bg-surface-primary px-3"
-        >
-          <option value="">Seçin</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="block space-y-1.5 text-sm">
-        <span className="font-medium text-foreground">Tarih</span>
-        <Input type="date" required value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} />
-      </label>
-      <label className="block space-y-1.5 text-sm">
-        <span className="font-medium text-foreground">Tutar</span>
-        <Input required inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
-      </label>
-      <label className="block space-y-1.5 text-sm">
-        <span className="font-medium text-foreground">Referans</span>
-        <Input value={reference} onChange={(e) => setReference(e.target.value)} />
-      </label>
-      <label className="block space-y-1.5 text-sm">
-        <span className="font-medium text-foreground">Not</span>
-        <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
-      </label>
+    <AppForm form={form} onSubmit={onSubmit} className="max-w-xl space-y-4">
+      <FormRootError />
+      <FormSectionTabs sections={SECTIONS} active={section} onChange={setSection} />
+
+      {section === "customer" ? (
+        <FormSectionPanel title="Müşteri">
+          <Select
+            label="Müşteri *"
+            placeholder="Seçin"
+            options={customers.map((c) => ({ value: String(c.id), label: c.name }))}
+            error={errors.customer?.message}
+            {...register("customer")}
+          />
+          {selected ? (
+            <div className="mt-3">
+              <PaymentFinancialHint openBalance={selected.open_balance} amount={amount} />
+            </div>
+          ) : null}
+        </FormSectionPanel>
+      ) : null}
+
+      {section === "payment" ? (
+        <FormSectionPanel title="Ödeme bilgileri">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Tarih *"
+              type="date"
+              error={errors.payment_date?.message}
+              {...register("payment_date")}
+            />
+            <Input
+              label="Tutar *"
+              inputMode="decimal"
+              error={errors.amount?.message}
+              {...register("amount")}
+            />
+            <div className="sm:col-span-2">
+              <Input
+                label="Referans"
+                error={errors.reference?.message}
+                {...register("reference")}
+              />
+            </div>
+          </div>
+          {selected ? (
+            <div className="mt-3">
+              <PaymentFinancialHint openBalance={selected.open_balance} amount={amount} />
+            </div>
+          ) : null}
+        </FormSectionPanel>
+      ) : null}
+
+      {section === "notes" ? (
+        <FormSectionPanel title="Notlar">
+          <Input label="Not" error={errors.notes?.message} {...register("notes")} />
+        </FormSectionPanel>
+      ) : null}
+
       <div className="flex gap-2">
-        <Button type="submit" disabled={saving} loading={saving}>
-          Kaydet
-        </Button>
-        <Button type="button" variant="secondary" onClick={() => router.push("/payments")}>
+        <SubmitButton>Kaydet</SubmitButton>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={isSubmitting}
+          onClick={() => router.push("/payments")}
+        >
           İptal
         </Button>
       </div>
-    </form>
+    </AppForm>
   );
 }

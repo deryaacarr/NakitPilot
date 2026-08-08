@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import { AutosaveIndicator } from "@/components/forms";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -14,6 +15,11 @@ import {
   type CallOutcome,
   type CollectionTask,
 } from "@/lib/collections/types";
+import { useAutosave } from "@/lib/forms/use-autosave";
+
+function draftKey(taskId: number) {
+  return `nakitpilot.call_draft.${taskId}`;
+}
 
 export function validateCompleteTaskNotes(notes: string): boolean {
   return notes.trim().length > 0;
@@ -112,6 +118,31 @@ export function CompleteTaskModal({
   const [promiseDate, setPromiseDate] = useState("");
   const [promiseAmount, setPromiseAmount] = useState("");
 
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(draftKey(task.id));
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { notes?: string; outcome?: CallOutcome };
+      if (parsed.notes) setNotes(parsed.notes);
+      if (parsed.outcome) setOutcome(parsed.outcome);
+    } catch {
+      /* ignore corrupt draft */
+    }
+  }, [task.id]);
+
+  const draftAutosave = useAutosave({
+    value: { notes, outcome },
+    debounceMs: 600,
+    serialize: (v) => JSON.stringify(v),
+    save: async (v) => {
+      try {
+        window.localStorage.setItem(draftKey(task.id), JSON.stringify(v));
+      } catch {
+        return { ok: false, message: "Taslak kaydedilemedi" };
+      }
+    },
+  });
+
   const fields = useMemo(() => fieldsForOutcome(outcome), [outcome]);
 
   const onOutcomeChange = (next: CallOutcome) => {
@@ -160,6 +191,11 @@ export function CompleteTaskModal({
       toast({ title: result.error.title, description: result.error.message, tone: "error" });
       return;
     }
+    try {
+      window.localStorage.removeItem(draftKey(task.id));
+    } catch {
+      /* ignore */
+    }
     onDone();
   };
 
@@ -182,6 +218,12 @@ export function CompleteTaskModal({
       }
     >
       <div className="space-y-4">
+        <div className="flex justify-end">
+          <AutosaveIndicator
+            status={draftAutosave.status}
+            errorMessage={draftAutosave.errorMessage}
+          />
+        </div>
         <Select
           name="outcome"
           label="Görüşme sonucu *"

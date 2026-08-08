@@ -74,7 +74,7 @@ def test_notification_types_and_href(org_owner):
     assert alert.href == f"/customers/{customer.id}"
     assert resolve_notification_href(
         NotificationType.TASK_DUE, entity_id=12
-    ) == "/collections?task=12"
+    ) == "/collections/field?task=12"
 
 
 @pytest.mark.django_db
@@ -135,6 +135,8 @@ def test_alerts_list_mark_read_and_mark_all(api_client, org_owner):
     assert len(listed.data["results"]) == 2
     assert "href" in listed.data["results"][0]
     assert "notification_type" in listed.data["results"][0]
+    assert "importance_group" in listed.data["results"][0]
+    assert "actions" in listed.data["results"][0]
 
     read = client.post(f"/api/notifications/alerts/{a1.id}/read/")
     assert read.status_code == status.HTTP_200_OK
@@ -146,9 +148,21 @@ def test_alerts_list_mark_read_and_mark_all(api_client, org_owner):
     mark_all = client.post("/api/notifications/alerts/read-all/")
     assert mark_all.status_code == status.HTTP_200_OK
     assert mark_all.data["updated"] == 1
+    assert mark_all.data.get("critical_preserved") is True
 
     listed3 = client.get("/api/notifications/alerts/")
     assert listed3.data["unread_count"] == 0
+
+    # NP-462 preferences
+    prefs = client.get("/api/notifications/preferences/")
+    assert prefs.status_code == status.HTTP_200_OK
+    patch = client.patch(
+        "/api/notifications/preferences/",
+        {"mute_system": True, "group_by_customer": True},
+        format="json",
+    )
+    assert patch.status_code == status.HTTP_200_OK
+    assert patch.data["mute_system"] is True
 
 
 def test_schedule_window_org_local():
