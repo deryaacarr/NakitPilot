@@ -180,6 +180,16 @@ def test_dashboard_api(api_client, org_setup):
     assert "weekly" in body["performance"]
     assert "tasks_by_user" in body["performance"]
     assert "promises" in body["performance"]
+    assert "comparisons" in body["summary"]
+    assert "meta" in body["summary"]
+    assert body["summary"]["meta"]["customer_count"] >= 1
+    assert "agent" in body
+    assert "risk_distribution" in body
+    assert "forecast" in body
+    if body["call_list"]["results"]:
+        row = body["call_list"]["results"][0]
+        assert "priority_reason" in row
+        assert "suggested_action" in row
 
 
 @pytest.mark.django_db

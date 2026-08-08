@@ -25,6 +25,8 @@ export function PromiseQuickCreate() {
 
   useEffect(() => {
     if (searchParams.get("create") === "1") setOpen(true);
+    const preselect = searchParams.get("customer");
+    if (preselect) setCustomer(preselect);
   }, [searchParams]);
 
   useEffect(() => {

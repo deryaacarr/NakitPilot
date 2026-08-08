@@ -69,20 +69,48 @@ class DashboardOverviewView(_DashboardBase):
             if rm is not None:
                 return Response(rm)
 
+        from apps.dashboard.services import agent_workboard
+        from apps.organizations.models import Membership, Role
+
         payload = get_or_set_org(
             organization.id,
-            "dashboard_overview",
+            "dashboard_overview_v2",
             lambda: dashboard_overview(
                 organization.id,
                 preset=rng["preset"],
                 date_from=rng["date_from"],
                 date_to=rng["date_to"],
+                include_agent=False,
             ),
             rng["preset"],
             str(rng["date_from"]),
             str(rng["date_to"]),
             ttl=TTL_DASHBOARD,
         )
+        membership = (
+            Membership.objects.filter(
+                user=request.user,
+                organization=organization,
+                is_active=True,
+            )
+            .only("role")
+            .first()
+        )
+        agent_user_id = (
+            request.user.id
+            if membership and membership.role == Role.COLLECTION_AGENT
+            else None
+        )
+        # Agent board is user-scoped for collection agents — keep outside org cache
+        payload = {
+            **payload,
+            "role": membership.role if membership else None,
+            "agent": agent_workboard(
+                organization.id,
+                as_of=rng["date_to"],
+                user_id=agent_user_id,
+            ),
+        }
         return Response(payload)
 
 

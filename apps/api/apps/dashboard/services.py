@@ -50,6 +50,76 @@ def _money(value: Decimal) -> str:
     return str(Decimal(str(value)).quantize(QUANTIZE, rounding=ROUND_HALF_UP))
 
 
+def _change_pct(current: Decimal, previous: Decimal) -> float | None:
+    if previous == ZERO:
+        return None if current == ZERO else 100.0
+    return float(
+        ((current - previous) / previous * Decimal("100")).quantize(
+            Decimal("0.1"), rounding=ROUND_HALF_UP
+        )
+    )
+
+
+def _receivables_totals(
+    organization_id: int, *, as_of: date, currency: str
+) -> tuple[Decimal, Decimal, int, int]:
+    """Open + overdue totals and invoice counts as of a date (current remaining)."""
+    open_total = ZERO
+    overdue_total = ZERO
+    open_count = 0
+    overdue_count = 0
+    for inv in _open_invoices(organization_id).filter(currency=currency):
+        rem = inv.remaining_amount()
+        if rem <= ZERO:
+            continue
+        # Invoice not yet issued relative to as_of
+        if inv.invoice_date and inv.invoice_date > as_of:
+            continue
+        open_total += rem
+        open_count += 1
+        if invoice_overdue_days(inv, as_of=as_of) > 0:
+            overdue_total += rem
+            overdue_count += 1
+    return open_total, overdue_total, open_count, overdue_count
+
+
+PRIORITY_REASON_LABELS = {
+    "promise_broken": "Bozulan ödeme sözü",
+    "promise_today": "Bugün ödeme sözü var",
+    "overdue_amount_high": "Yüksek gecikmiş bakiye",
+    "overdue_days_gt_30": "30+ gün gecikme",
+    "high_risk": "Yüksek risk skoru",
+    "no_contact_7d": "7 gündür görüşülmedi",
+}
+
+
+def _priority_reason(details: dict[str, Any]) -> str:
+    if not details:
+        return "Açık bakiye / tahsilat önceliği"
+    # Highest weight first
+    ordered = sorted(details.items(), key=lambda item: (-item[1], item[0]))
+    parts = [PRIORITY_REASON_LABELS.get(key, key) for key, _ in ordered[:2]]
+    return " · ".join(parts)
+
+
+def _suggested_action(
+    *,
+    promise_today: bool,
+    promise_broken: bool,
+    oldest_overdue_days: int | None,
+    last_contact_at,
+) -> str:
+    if promise_broken:
+        return "Bozulan sözü takip et"
+    if promise_today:
+        return "Sözü teyit et / ara"
+    if oldest_overdue_days is not None and oldest_overdue_days > 30:
+        return "Acil ara"
+    if last_contact_at is None:
+        return "İlk teması kur"
+    return "Ara ve durum al"
+
+
 def _bucket_code(overdue_days: int) -> str:
     if overdue_days <= 0:
         return "not_due"
@@ -99,15 +169,13 @@ def dashboard_summary(
     if org is not None:
         currency = (org.default_currency or "TRY").upper()
 
-    open_total = ZERO
-    overdue_total = ZERO
-    for inv in _open_invoices(organization_id).filter(currency=currency):
-        rem = inv.remaining_amount()
-        if rem <= ZERO:
-            continue
-        open_total += rem
-        if invoice_overdue_days(inv, as_of=today) > 0:
-            overdue_total += rem
+    open_total, overdue_total, open_invoice_count, overdue_invoice_count = _receivables_totals(
+        organization_id, as_of=today, currency=currency
+    )
+    prev_as_of = today - timedelta(days=30)
+    prev_open, prev_overdue, _, _ = _receivables_totals(
+        organization_id, as_of=prev_as_of, currency=currency
+    )
 
     week_starts = []
     cursor = iso_week_start(period_from)
@@ -153,6 +221,14 @@ def dashboard_summary(
         status__in=OPEN_TASK_STATUSES,
         due_date__lt=today,
     ).count()
+    today_tasks = CollectionTask.objects.filter(
+        organization_id=organization_id,
+        status__in=OPEN_TASK_STATUSES,
+        due_date=today,
+    ).count()
+    customer_count = Customer.objects.filter(
+        organization_id=organization_id, is_active=True
+    ).count()
 
     return {
         "as_of": today.isoformat(),
@@ -165,6 +241,51 @@ def dashboard_summary(
             "promises_broken": promises_broken,
             "critical_customers": critical_customers,
             "overdue_tasks": overdue_tasks,
+            "today_tasks": today_tasks,
+        },
+        "comparisons": {
+            "open_receivables": {
+                "previous": _money(prev_open),
+                "change_pct": _change_pct(open_total, prev_open),
+                "direction_good_when": "down",
+                "label": "Geçen aya göre",
+            },
+            "overdue_receivables": {
+                "previous": _money(prev_overdue),
+                "change_pct": _change_pct(overdue_total, prev_overdue),
+                "direction_good_when": "down",
+                "label": "Geçen aya göre",
+            },
+            "expected_this_week": {
+                "previous": None,
+                "change_pct": None,
+                "direction_good_when": "up",
+                "label": "Dönem beklentisi",
+            },
+            "promises_broken": {
+                "previous": None,
+                "change_pct": None,
+                "direction_good_when": "down",
+                "label": "Dönem içi",
+            },
+            "critical_customers": {
+                "previous": None,
+                "change_pct": None,
+                "direction_good_when": "down",
+                "label": "Anlık",
+            },
+            "overdue_tasks": {
+                "previous": None,
+                "change_pct": None,
+                "direction_good_when": "down",
+                "label": "Anlık",
+            },
+        },
+        "meta": {
+            "customer_count": customer_count,
+            "open_invoice_count": open_invoice_count,
+            "overdue_invoice_count": overdue_invoice_count,
+            "is_empty": customer_count == 0,
         },
         "week_start": iso_week_start(today).isoformat(),
         "date_from": period_from.isoformat(),
@@ -239,7 +360,7 @@ def today_call_list(
     as_of: date | None = None,
     limit: int = 10,
 ) -> dict[str, Any]:
-    """NP-122: top N customers by priority score."""
+    """NP-122 / NP-393: top N customers by priority score with action context."""
     today = as_of or timezone.localdate()
     customers = list(
         Customer.objects.filter(organization_id=organization_id, is_active=True).order_by("id")
@@ -260,38 +381,52 @@ def today_call_list(
             status=PaymentPromiseStatus.BROKEN,
         ).values_list("customer_id", flat=True)
     )
-    today_promises = {
-        p.customer_id: p
-        for p in PaymentPromise.objects.filter(
+    pending_promises = {}
+    for p in (
+        PaymentPromise.objects.filter(
             organization_id=organization_id,
             status=PaymentPromiseStatus.PENDING,
-            promised_date=today,
-        ).order_by("id")
-    }
+        )
+        .order_by("promised_date", "id")
+    ):
+        pending_promises.setdefault(p.customer_id, p)
+
+    open_tasks = {}
+    for task in (
+        CollectionTask.objects.filter(
+            organization_id=organization_id,
+            status__in=OPEN_TASK_STATUSES,
+        )
+        .order_by("due_date", "id")
+        .only("id", "customer_id", "due_date", "title")
+    ):
+        open_tasks.setdefault(task.customer_id, task)
 
     scored: list[dict[str, Any]] = []
     for customer in customers:
         metrics = customer_financial_metrics(customer)
         overdue = Decimal(str(metrics.get("overdue_balance") or ZERO))
         open_bal = Decimal(str(metrics.get("open_balance") or ZERO))
-        # Focus call list on customers with something to collect
         if open_bal <= ZERO and customer.id not in promise_today_ids:
             continue
 
-        score, level, _ = compute_priority_score(
+        score, level, details = compute_priority_score(
             customer,
             as_of=today,
             promise_today=customer.id in promise_today_ids,
             promise_broken=customer.id in broken_ids,
         )
-        promise = today_promises.get(customer.id)
+        promise = pending_promises.get(customer.id)
+        task = open_tasks.get(customer.id)
+        oldest = metrics.get("oldest_overdue_days")
         scored.append(
             {
                 "customer_id": customer.id,
                 "customer_name": customer.name,
                 "customer_code": customer.code or "",
+                "customer_phone": customer.phone or "",
                 "overdue_balance": _money(overdue),
-                "oldest_overdue_days": metrics.get("oldest_overdue_days"),
+                "oldest_overdue_days": oldest,
                 "risk_status": customer.risk_status,
                 "risk_score": int(customer.risk_score or 0),
                 "last_contact_at": (
@@ -309,16 +444,168 @@ def today_call_list(
                     if promise
                     else None
                 ),
+                "open_task_id": task.id if task else None,
                 "priority_score": score,
                 "priority": level,
+                "priority_reason": _priority_reason(details),
+                "suggested_action": _suggested_action(
+                    promise_today=customer.id in promise_today_ids,
+                    promise_broken=customer.id in broken_ids,
+                    oldest_overdue_days=oldest,
+                    last_contact_at=customer.last_contact_at,
+                ),
             }
         )
 
-    scored.sort(key=lambda row: (-row["priority_score"], -Decimal(row["overdue_balance"]), row["customer_id"]))
+    scored.sort(
+        key=lambda row: (-row["priority_score"], -Decimal(row["overdue_balance"]), row["customer_id"])
+    )
     return {
         "as_of": today.isoformat(),
         "results": scored[:limit],
     }
+
+
+def _serialize_task(task: CollectionTask) -> dict[str, Any]:
+    return {
+        "id": task.id,
+        "title": task.title,
+        "status": task.status,
+        "due_date": task.due_date.isoformat() if task.due_date else None,
+        "customer_id": task.customer_id,
+        "customer_name": getattr(task.customer, "name", "") if task.customer_id else "",
+        "priority": task.priority,
+        "priority_score": task.priority_score,
+    }
+
+
+def agent_workboard(
+    organization_id: int,
+    *,
+    as_of: date | None = None,
+    user_id: int | None = None,
+    limit: int = 8,
+) -> dict[str, Any]:
+    """NP-391 — collection agent focused widgets."""
+    today = as_of or timezone.localdate()
+    tasks = CollectionTask.objects.filter(
+        organization_id=organization_id,
+        status__in=OPEN_TASK_STATUSES,
+    ).select_related("customer")
+    if user_id:
+        tasks = tasks.filter(assigned_to_id=user_id)
+
+    today_tasks = list(tasks.filter(due_date=today).order_by("-priority_score", "id")[:limit])
+    overdue_tasks = list(
+        tasks.filter(due_date__lt=today).order_by("due_date", "-priority_score")[:limit]
+    )
+
+    promises = PaymentPromise.objects.filter(
+        organization_id=organization_id,
+        status=PaymentPromiseStatus.PENDING,
+        promised_date=today,
+    ).select_related("customer")
+    if user_id:
+        # Prefer promises for customers the agent is working
+        agent_customer_ids = CollectionTask.objects.filter(
+            organization_id=organization_id,
+            assigned_to_id=user_id,
+            status__in=OPEN_TASK_STATUSES,
+        ).values_list("customer_id", flat=True)
+        promises = promises.filter(customer_id__in=agent_customer_ids)
+
+    promise_rows = [
+        {
+            "id": p.id,
+            "customer_id": p.customer_id,
+            "customer_name": p.customer.name,
+            "amount": _money(p.amount),
+            "promised_date": p.promised_date.isoformat(),
+            "status": p.status,
+        }
+        for p in promises.order_by("id")[:limit]
+    ]
+
+    from apps.collections.models import CollectionActivity
+
+    activities_qs = CollectionActivity.objects.filter(
+        organization_id=organization_id
+    ).select_related("customer", "created_by")
+    if user_id:
+        activities_qs = activities_qs.filter(created_by_id=user_id)
+    recent_activities = [
+        {
+            "id": a.id,
+            "customer_id": a.customer_id,
+            "customer_name": a.customer.name if a.customer_id else "",
+            "activity_type": a.activity_type,
+            "summary": a.summary,
+            "occurred_at": a.occurred_at.isoformat().replace("+00:00", "Z"),
+        }
+        for a in activities_qs.order_by("-occurred_at", "-id")[:limit]
+    ]
+
+    return {
+        "as_of": today.isoformat(),
+        "today_tasks": [_serialize_task(t) for t in today_tasks],
+        "overdue_tasks": [_serialize_task(t) for t in overdue_tasks],
+        "promises_today": promise_rows,
+        "recent_activities": recent_activities,
+    }
+
+
+def risk_distribution(organization_id: int) -> dict[str, Any]:
+    from django.db.models import Count
+
+    counts: dict[str, int] = {
+        RiskStatus.LOW: 0,
+        RiskStatus.MEDIUM: 0,
+        RiskStatus.HIGH: 0,
+        RiskStatus.CRITICAL: 0,
+    }
+    for row in (
+        Customer.objects.filter(organization_id=organization_id, is_active=True)
+        .values("risk_status")
+        .annotate(count=Count("id"))
+    ):
+        counts[row["risk_status"]] = row["count"]
+    return {
+        "groups": [
+            {"status": status, "count": counts.get(status, 0)}
+            for status in (
+                RiskStatus.LOW,
+                RiskStatus.MEDIUM,
+                RiskStatus.HIGH,
+                RiskStatus.CRITICAL,
+            )
+        ]
+    }
+
+
+def forecast_snippet(organization_id: int, *, as_of: date | None = None) -> dict[str, Any]:
+    today = as_of or timezone.localdate()
+    currency = "TRY"
+    org = Organization.objects.filter(pk=organization_id).first()
+    if org is not None:
+        currency = (org.default_currency or "TRY").upper()
+    forecast = calculate_organization_forecast(
+        organization_id,
+        as_of=today,
+        persist=False,
+        weeks=4,
+        currency=currency,
+    )
+    weeks = [
+        {
+            "week_start": w["week_start"].isoformat()
+            if hasattr(w["week_start"], "isoformat")
+            else str(w["week_start"]),
+            "expected_amount": _money(w["expected_amount"]),
+        }
+        for w in forecast.get("weeks", [])[:4]
+    ]
+    total = sum((Decimal(w["expected_amount"]) for w in weeks), ZERO)
+    return {"currency": currency, "weeks": weeks, "total_expected": _money(total)}
 
 
 def dashboard_overview(
@@ -328,8 +615,10 @@ def dashboard_overview(
     preset: str = "week",
     date_from: date | None = None,
     date_to: date | None = None,
+    user_id: int | None = None,
+    include_agent: bool = True,
 ) -> dict[str, Any]:
-    """Combined payload for the dashboard home screen (NP-120–124)."""
+    """Combined payload for the dashboard home screen (EPIC 39 / NP-120–124)."""
     from apps.dashboard.performance import performance_report, resolve_date_range
 
     rng = resolve_date_range(
@@ -340,7 +629,7 @@ def dashboard_overview(
     )
     end = rng["date_to"]
     start = rng["date_from"]
-    return {
+    payload = {
         "range": {
             "preset": rng["preset"],
             "date_from": start.isoformat(),
@@ -359,4 +648,9 @@ def dashboard_overview(
             date_from=start,
             date_to=end,
         ),
+        "risk_distribution": risk_distribution(organization_id),
+        "forecast": forecast_snippet(organization_id, as_of=end),
     }
+    if include_agent:
+        payload["agent"] = agent_workboard(organization_id, as_of=end, user_id=user_id)
+    return payload
