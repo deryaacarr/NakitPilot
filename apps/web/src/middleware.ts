@@ -9,10 +9,12 @@ const PROTECTED_PREFIXES = [
   "/invoices",
   "/collections",
   "/promises",
+  "/payments",
   "/messages",
   "/forecast",
   "/imports",
   "/legal",
+  "/notifications",
   "/offline",
 ] as const;
 
@@ -53,6 +55,8 @@ export const config = {
     "/collections/:path*",
     "/promises",
     "/promises/:path*",
+    "/payments",
+    "/payments/:path*",
     "/messages",
     "/messages/:path*",
     "/forecast",
@@ -61,6 +65,8 @@ export const config = {
     "/imports/:path*",
     "/legal",
     "/legal/:path*",
+    "/notifications",
+    "/notifications/:path*",
     "/offline",
   ],
 };

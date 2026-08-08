@@ -34,6 +34,7 @@ urlpatterns = [
     path("api/v1/", include("apps.public_api.urls")),
     path("api/forecast/", include("apps.forecasting.urls")),
     path("api/dashboard/", include("apps.dashboard.urls")),
+    path("api/search/", include("apps.dashboard.search_urls")),
     path("api/message-templates/", include("apps.messaging.urls")),
     path("api/public/email/", include("apps.messaging.public_urls")),
     path("api/ai-usage/", include("apps.ai_usage.urls")),

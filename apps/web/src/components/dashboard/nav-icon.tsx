@@ -1,6 +1,6 @@
-import type { NavItem } from "./nav-config";
+import type { NavIconName } from "./nav-config";
 
-const paths: Record<NavItem["icon"], string> = {
+const paths: Record<NavIconName, string> = {
   home: "M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3m10-11v10a1 1 0 01-1 1h-3m-6 0h6",
   customers:
     "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
@@ -13,18 +13,22 @@ const paths: Record<NavItem["icon"], string> = {
     "M18 8A6 6 0 106 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0",
   settings:
     "M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z",
-  developers:
-    "M16 18l6-6-6-6M8 6l-6 6 6 6",
+  developers: "M16 18l6-6-6-6M8 6l-6 6 6 6",
   workflows:
     "M6 3v12M18 9v12M6 15a3 3 0 100-6 3 3 0 000 6zM18 21a3 3 0 100-6 3 3 0 000 6zM8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98",
   risk: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+  payments:
+    "M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
+  calendar:
+    "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z",
+  search: "M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.3-4.3",
 };
 
 export function NavIcon({
   name,
-  className = "size-5",
+  className = "size-5 shrink-0",
 }: {
-  name: NavItem["icon"];
+  name: NavIconName;
   className?: string;
 }) {
   return (
