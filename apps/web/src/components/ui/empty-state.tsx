@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
 
-import { Button } from "./button";
+import { Button, ButtonLink } from "./button";
 
 export type EmptyStateProps = {
   /** Ne eksik? */
@@ -45,36 +44,28 @@ export function EmptyState({
         className,
       )}
     >
-      {icon ? <div className="mb-3 text-muted" aria-hidden>{icon}</div> : null}
-      <h3 className="text-base font-semibold text-foreground">{title}</h3>
-      {description ? (
-        <p className="mt-2 max-w-md text-sm text-muted">{description}</p>
+      {icon ? (
+        <div className="mb-3 text-muted" aria-hidden>
+          {icon}
+        </div>
       ) : null}
+      <h3 className="text-base font-semibold text-foreground">{title}</h3>
+      {description ? <p className="mt-2 max-w-md text-sm text-muted">{description}</p> : null}
       {why ? <p className="mt-1 max-w-md text-xs text-subtle">{why}</p> : null}
       {actionLabel && (onAction || actionHref) ? (
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
           {actionHref ? (
-            <Link
-              href={actionHref}
-              className="inline-flex min-h-11 items-center rounded-[var(--radius-md)] bg-primary px-4 text-sm font-semibold text-primary-foreground"
-            >
-              {actionLabel}
-            </Link>
+            <ButtonLink href={actionHref}>{actionLabel}</ButtonLink>
           ) : (
-            <Button className="min-h-11" onClick={onAction}>
-              {actionLabel}
-            </Button>
+            <Button onClick={onAction}>{actionLabel}</Button>
           )}
           {secondaryLabel && (onSecondaryAction || secondaryHref) ? (
             secondaryHref ? (
-              <Link
-                href={secondaryHref}
-                className="inline-flex min-h-11 items-center rounded-[var(--radius-md)] border border-border-default px-4 text-sm font-semibold"
-              >
+              <ButtonLink href={secondaryHref} variant="outline">
                 {secondaryLabel}
-              </Link>
+              </ButtonLink>
             ) : (
-              <Button variant="outline" className="min-h-11" onClick={onSecondaryAction}>
+              <Button variant="outline" onClick={onSecondaryAction}>
                 {secondaryLabel}
               </Button>
             )

@@ -17,6 +17,7 @@ export type TableProps<T> = {
   className?: string;
 };
 
+/** Simple presentational table (NP-500 tokens). Prefer DataTable for interactive lists. */
 export function Table<T>({
   columns,
   rows,
@@ -25,10 +26,15 @@ export function Table<T>({
   className,
 }: TableProps<T>) {
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-slate-200 bg-white", className)}>
+    <div
+      className={cn(
+        "overflow-hidden rounded-[var(--radius-lg)] border border-border-default bg-surface-primary",
+        className,
+      )}
+    >
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+          <thead className="border-b border-border-default bg-surface-secondary text-xs font-semibold tracking-wide text-subtle uppercase">
             <tr>
               {columns.map((column) => (
                 <th key={column.key} className={cn("px-4 py-3", column.className)}>
@@ -40,18 +46,15 @@ export function Table<T>({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-10 text-center text-slate-500">
+                <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-muted">
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
               rows.map((row) => (
-                <tr key={rowKey(row)} className="border-b border-slate-100 last:border-0">
+                <tr key={rowKey(row)} className="border-b border-border-default last:border-0">
                   {columns.map((column) => (
-                    <td
-                      key={column.key}
-                      className={cn("px-4 py-3 text-slate-800", column.className)}
-                    >
+                    <td key={column.key} className={cn("px-4 py-3 text-foreground", column.className)}>
                       {column.cell(row)}
                     </td>
                   ))}

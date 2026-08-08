@@ -13,11 +13,13 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
   ref,
 ) {
   const textareaId = id ?? props.name;
+  const errorId = textareaId ? `${textareaId}-error` : undefined;
+  const hintId = textareaId ? `${textareaId}-hint` : undefined;
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-[var(--space-2)]">
       {label ? (
-        <label htmlFor={textareaId} className="block text-sm font-medium text-slate-700">
+        <label htmlFor={textareaId} className="block text-sm font-medium text-foreground">
           {label}
         </label>
       ) : null}
@@ -27,21 +29,24 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
         rows={rows}
         disabled={disabled}
         aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : hint ? hintId : undefined}
         className={cn(
-          "w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 transition outline-none placeholder:text-slate-400 focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-70",
+          "min-h-[6.5rem] w-full rounded-[var(--radius-md)] border bg-surface-primary px-3 py-2 text-sm text-foreground transition outline-none placeholder:text-subtle focus:ring-2 disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-70",
           error
-            ? "border-red-300 focus:border-red-400 focus:ring-red-200"
-            : "focus:border-brand focus:ring-brand/20 border-slate-300",
+            ? "border-danger focus:border-danger focus:ring-danger/20"
+            : "border-border-default focus:border-primary focus:ring-primary/20",
           className,
         )}
         {...props}
       />
       {error ? (
-        <p className="text-sm text-red-700" role="alert">
+        <p id={errorId} className="text-sm text-danger-foreground" role="alert">
           {error}
         </p>
       ) : hint ? (
-        <p className="text-xs text-slate-500">{hint}</p>
+        <p id={hintId} className="np-helper">
+          {hint}
+        </p>
       ) : null}
     </div>
   );

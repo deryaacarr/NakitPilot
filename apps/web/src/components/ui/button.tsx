@@ -1,4 +1,6 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
+import Link from "next/link";
+import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -30,6 +32,24 @@ const sizeClass: Record<ButtonSize, string> = {
   lg: "h-[var(--control-height-lg)] px-5 text-sm",
 };
 
+/** Shared classes for Button and ButtonLink (NP-500). */
+export function buttonClassName({
+  variant = "primary",
+  size = "md",
+  className,
+}: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  className?: string;
+}) {
+  return cn(
+    "inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border font-semibold transition focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60",
+    variantClass[variant],
+    sizeClass[size],
+    className,
+  );
+}
+
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   {
     className,
@@ -48,12 +68,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       type={type}
       disabled={disabled || loading}
-      className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] border font-semibold transition focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60",
-        variantClass[variant],
-        sizeClass[size],
-        className,
-      )}
+      className={buttonClassName({ variant, size, className })}
       {...props}
     >
       {loading ? (
@@ -66,3 +81,23 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     </button>
   );
 });
+
+/** NP-500 — Link that shares Button visual language (no duplicate CTA styles). */
+export function ButtonLink({
+  href,
+  variant = "primary",
+  size = "md",
+  className,
+  children,
+  ...props
+}: Omit<ComponentProps<typeof Link>, "className"> & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  className?: string;
+}) {
+  return (
+    <Link href={href} className={buttonClassName({ variant, size, className })} {...props}>
+      {children}
+    </Link>
+  );
+}

@@ -1,7 +1,6 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import type { AppError } from "@/lib/errors";
 
@@ -52,14 +51,11 @@ export function ErrorState({
         ) : null}
         {secondaryLabel && (onSecondaryAction || secondaryHref) ? (
           secondaryHref ? (
-            <Link
-              href={secondaryHref}
-              className="inline-flex min-h-11 items-center rounded-[var(--radius-md)] border border-border-default bg-surface-primary px-4 text-sm font-semibold"
-            >
+            <ButtonLink href={secondaryHref} variant="outline">
               {secondaryLabel}
-            </Link>
+            </ButtonLink>
           ) : (
-            <Button variant="secondary" className="min-h-11" onClick={onSecondaryAction}>
+            <Button variant="secondary" onClick={onSecondaryAction}>
               {secondaryLabel}
             </Button>
           )

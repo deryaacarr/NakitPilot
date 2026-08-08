@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DataTable, type DataTableColumn } from "@/components/data-table";
-import { Button } from "@/components/ui/button";
+import { ListPage } from "@/components/templates";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Money } from "@/components/ui/money";
 import { StatusChip } from "@/components/ui/status-chip";
@@ -350,139 +351,144 @@ export function InvoiceListView() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-serif text-3xl tracking-tight text-foreground">Faturalar</h1>
-          <p className="mt-1 text-sm text-muted">Aksiyon odaklı alacak tablosu</p>
-        </div>
-        <Link
-          href="/invoices/new"
-          className="inline-flex h-10 items-center justify-center rounded-[var(--radius-md)] bg-primary px-4 text-sm font-semibold text-primary-foreground"
-        >
-          Yeni fatura
-        </Link>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-subtle">Görünümler</span>
-        {PRESET_VIEWS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => applyPreset(p)}
-            className={[
-              "rounded-full border px-3 py-1 text-xs font-medium",
-              activeViewId === p.id
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border-default text-muted hover:bg-surface-tertiary",
-            ].join(" ")}
-          >
-            {p.name}
-          </button>
-        ))}
-        {savedViews.map((v) => (
-          <button
-            key={v.id}
-            type="button"
-            onClick={() => applySavedView(v)}
-            className={[
-              "rounded-full border px-3 py-1 text-xs font-medium",
-              activeViewId === String(v.id)
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border-default text-muted hover:bg-surface-tertiary",
-            ].join(" ")}
-          >
-            {v.name}
-            {v.is_default ? " ★" : ""}
-            {v.is_shared ? " ↗" : ""}
-          </button>
-        ))}
-        <Button size="sm" variant="secondary" onClick={() => setShowSave(true)}>
-          Görünümü kaydet
-        </Button>
-        {activeViewId && !activeViewId.startsWith("preset-") ? (
-          <>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                const v = savedViews.find((x) => String(x.id) === activeViewId);
-                if (v) void setDefaultSavedView(v.id).then(() => toast({ title: "Varsayılan görünüm ayarlandı", tone: "success" }));
-              }}
-            >
-              Varsayılan yap
+    <ListPage
+      title="Faturalar"
+      description="Aksiyon odaklı alacak tablosu"
+      actions={<ButtonLink href="/invoices/new">Yeni fatura</ButtonLink>}
+      toolbar={
+        <div className="flex w-full flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-subtle">
+              Görünümler
+            </span>
+            {PRESET_VIEWS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => applyPreset(p)}
+                className={[
+                  "rounded-full border px-3 py-1 text-xs font-medium",
+                  activeViewId === p.id
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border-default text-muted hover:bg-surface-tertiary",
+                ].join(" ")}
+              >
+                {p.name}
+              </button>
+            ))}
+            {savedViews.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => applySavedView(v)}
+                className={[
+                  "rounded-full border px-3 py-1 text-xs font-medium",
+                  activeViewId === String(v.id)
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border-default text-muted hover:bg-surface-tertiary",
+                ].join(" ")}
+              >
+                {v.name}
+                {v.is_default ? " ★" : ""}
+                {v.is_shared ? " ↗" : ""}
+              </button>
+            ))}
+            <Button size="sm" variant="secondary" onClick={() => setShowSave(true)}>
+              Görünümü kaydet
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                const v = savedViews.find((x) => String(x.id) === activeViewId);
-                if (v) void copyViewLink(v);
+            {activeViewId && !activeViewId.startsWith("preset-") ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    const v = savedViews.find((x) => String(x.id) === activeViewId);
+                    if (v)
+                      void setDefaultSavedView(v.id).then(() =>
+                        toast({ title: "Varsayılan görünüm ayarlandı", tone: "success" }),
+                      );
+                  }}
+                >
+                  Varsayılan yap
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    const v = savedViews.find((x) => String(x.id) === activeViewId);
+                    if (v) void copyViewLink(v);
+                  }}
+                >
+                  Linki kopyala
+                </Button>
+              </>
+            ) : null}
+          </div>
+          {showSave ? (
+            <div className="flex flex-wrap items-end gap-2 rounded-[var(--radius-lg)] border border-border-default bg-surface-secondary p-3">
+              <Input
+                label="Görünüm adı"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+              />
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={shareView}
+                  onChange={(e) => setShareView(e.target.checked)}
+                />
+                Ekiple paylaş
+              </label>
+              <Button size="sm" onClick={() => void saveCurrentView()}>
+                Kaydet
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setShowSave(false)}>
+                Vazgeç
+              </Button>
+            </div>
+          ) : null}
+          <div className="grid w-full gap-3 rounded-[var(--radius-lg)] border border-border-default bg-surface-primary p-4 md:grid-cols-2 xl:grid-cols-4">
+            <Input
+              label="Tarih başlangıç"
+              type="date"
+              value={filters.date_from}
+              onChange={(e) => {
+                setFilters((f) => ({ ...f, date_from: e.target.value }));
+                setPage(1);
               }}
-            >
-              Linki kopyala
-            </Button>
-          </>
-        ) : null}
-      </div>
-
-      {showSave ? (
-        <div className="flex flex-wrap items-end gap-2 rounded-[var(--radius-lg)] border border-border-default bg-surface-secondary p-3">
-          <Input label="Görünüm adı" value={saveName} onChange={(e) => setSaveName(e.target.value)} />
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={shareView} onChange={(e) => setShareView(e.target.checked)} />
-            Ekiple paylaş
-          </label>
-          <Button size="sm" onClick={() => void saveCurrentView()}>
-            Kaydet
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setShowSave(false)}>
-            Vazgeç
-          </Button>
+            />
+            <Input
+              label="Tarih bitiş"
+              type="date"
+              value={filters.date_to}
+              onChange={(e) => {
+                setFilters((f) => ({ ...f, date_to: e.target.value }));
+                setPage(1);
+              }}
+            />
+            <Input
+              label="Kalan min"
+              value={filters.remaining_min}
+              onChange={(e) => {
+                setFilters((f) => ({ ...f, remaining_min: e.target.value }));
+                setPage(1);
+              }}
+              placeholder="250000"
+            />
+            <Input
+              label="Gecikme günü min"
+              type="number"
+              min={0}
+              value={filters.overdue_days_min}
+              onChange={(e) => {
+                setFilters((f) => ({ ...f, overdue_days_min: e.target.value }));
+                setPage(1);
+              }}
+            />
+          </div>
         </div>
-      ) : null}
-
-      <div className="grid gap-3 rounded-[var(--radius-lg)] border border-border-default bg-surface-primary p-4 md:grid-cols-2 xl:grid-cols-4">
-        <Input
-          label="Tarih başlangıç"
-          type="date"
-          value={filters.date_from}
-          onChange={(e) => {
-            setFilters((f) => ({ ...f, date_from: e.target.value }));
-            setPage(1);
-          }}
-        />
-        <Input
-          label="Tarih bitiş"
-          type="date"
-          value={filters.date_to}
-          onChange={(e) => {
-            setFilters((f) => ({ ...f, date_to: e.target.value }));
-            setPage(1);
-          }}
-        />
-        <Input
-          label="Kalan min"
-          value={filters.remaining_min}
-          onChange={(e) => {
-            setFilters((f) => ({ ...f, remaining_min: e.target.value }));
-            setPage(1);
-          }}
-          placeholder="250000"
-        />
-        <Input
-          label="Gecikme günü min"
-          type="number"
-          min={0}
-          value={filters.overdue_days_min}
-          onChange={(e) => {
-            setFilters((f) => ({ ...f, overdue_days_min: e.target.value }));
-            setPage(1);
-          }}
-        />
-      </div>
-
+      }
+    >
       <DataTable
         columns={columns}
         rows={rows}
@@ -596,6 +602,6 @@ export function InvoiceListView() {
         open={Boolean(drawerInvoice)}
         onClose={() => setDrawerInvoice(null)}
       />
-    </div>
+    </ListPage>
   );
 }

@@ -127,6 +127,19 @@
   --control-height-md: 2.5rem;
   --control-height-lg: 2.75rem;
 
+  /* NP-502 — layout breakpoints (documentation + CSS consumers) */
+  --bp-xs: 375px;
+  --bp-sm-phone: 430px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-laptop: 1366px;
+  --bp-desktop: 1440px;
+  --bp-wide: 1920px;
+  --bp-ultrawide: 2560px;
+  --content-max-fluid: 90rem;
+  --content-max-reading: 64rem;
+  --measure-prose: 65ch;
+
   /* NP-372 — typography */
   --np-font-sans: var(--font-manrope), "Segoe UI", system-ui, sans-serif;
   --np-font-serif: var(--font-source-serif), "Iowan Old Style", Georgia, serif;

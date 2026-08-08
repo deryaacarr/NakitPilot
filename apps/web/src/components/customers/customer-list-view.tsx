@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DataTable, type DataTableColumn } from "@/components/data-table";
+import { ListPage } from "@/components/templates";
+import { ButtonLink } from "@/components/ui/button";
 import { StatusChip } from "@/components/ui/status-chip";
 import { listCustomers } from "@/lib/customers/api";
 import { formatDate, formatMoney } from "@/lib/customers/format";
@@ -214,20 +216,11 @@ export function CustomerListView() {
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-serif text-3xl tracking-tight text-slate-900">Müşteriler</h1>
-          <p className="mt-1 text-sm text-slate-600">Cari hesap listesi ve risk görünümü</p>
-        </div>
-        <Link
-          href="/customers/new"
-          className="bg-brand text-brand-foreground inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold transition hover:bg-teal-800"
-        >
-          Yeni müşteri
-        </Link>
-      </div>
-
+    <ListPage
+      title="Müşteriler"
+      description="Cari hesap listesi ve risk görünümü"
+      actions={<ButtonLink href="/customers/new">Yeni müşteri</ButtonLink>}
+    >
       <DataTable
         columns={columns}
         rows={rows}
@@ -315,6 +308,6 @@ export function CustomerListView() {
         emptyActionLabel={EMPTY_PRESETS.customers.actionLabel}
         emptyActionHref={EMPTY_PRESETS.customers.actionHref}
       />
-    </div>
+    </ListPage>
   );
 }

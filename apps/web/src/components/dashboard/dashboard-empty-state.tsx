@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { enableSampleData } from "@/lib/onboarding/api";
 
@@ -33,18 +32,10 @@ export function DashboardEmptyState({ onSampleLoaded }: { onSampleLoaded?: () =>
         listeniz dolmaya başlar.
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-        <Link
-          href="/dashboard/settings#integrations"
-          className="inline-flex h-[var(--control-height-md)] items-center rounded-[var(--radius-md)] bg-primary px-4 text-sm font-semibold text-primary-foreground"
-        >
-          KolayBi bağla
-        </Link>
-        <Link
-          href="/imports"
-          className="inline-flex h-[var(--control-height-md)] items-center rounded-[var(--radius-md)] border border-border-default bg-surface-primary px-4 text-sm font-semibold text-foreground"
-        >
+        <ButtonLink href="/dashboard/settings#integrations">KolayBi bağla</ButtonLink>
+        <ButtonLink href="/imports" variant="outline">
           Excel yükle
-        </Link>
+        </ButtonLink>
         <Button type="button" variant="secondary" loading={loading} disabled={loading} onClick={() => void trySample()}>
           Örnek veri ile dene
         </Button>
