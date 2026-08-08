@@ -5,6 +5,7 @@ export type {
   DataTableFilter,
   DataTableFilterOption,
   DataTableProps,
+  DataTableRowAction,
   DataTableSort,
   SortDirection,
 } from "./types";

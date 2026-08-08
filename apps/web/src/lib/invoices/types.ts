@@ -6,6 +6,8 @@ export type Invoice = {
   customer: number;
   customer_name: string;
   customer_code: string;
+  customer_risk_status?: string;
+  customer_phone?: string;
   number: string;
   invoice_date: string;
   due_date: string;
@@ -69,6 +71,10 @@ export type InvoiceListParams = {
   search?: string;
   status?: string;
   customer?: string | number;
+  assigned_user?: string | number;
+  risk_status?: string;
+  promise_today?: string;
+  remaining_min?: string;
   date_from?: string;
   date_to?: string;
   invoice_date_from?: string;

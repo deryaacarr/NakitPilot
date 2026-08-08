@@ -206,3 +206,6 @@ from apps.organizations.structure import (  # noqa: E402
     Team,
     TeamMembership,
 )
+
+# NP-402 — saved table views
+from apps.organizations.saved_views import SavedTableView  # noqa: E402,F401

@@ -20,6 +20,14 @@ export type DataTableColumn<T> = {
   /** Başlangıçta gizli */
   defaultHidden?: boolean;
   className?: string;
+  /** Sticky first data column (NP-400) */
+  sticky?: boolean;
+  /** Text align for money columns */
+  align?: "left" | "right";
+  /** Initial width in px for resize */
+  width?: number;
+  /** Min width when resizing */
+  minWidth?: number;
 };
 
 export type DataTableFilterOption = {
@@ -33,6 +41,13 @@ export type DataTableFilter = {
   options: DataTableFilterOption[];
   /** Boş string = tümü */
   value: string;
+};
+
+export type DataTableRowAction<T> = {
+  id: string;
+  label: string;
+  onClick: (row: T) => void;
+  tone?: "default" | "danger";
 };
 
 export type DataTableProps<T> = {
@@ -63,6 +78,22 @@ export type DataTableProps<T> = {
   hiddenColumnIds?: string[];
   onHiddenColumnIdsChange?: (ids: string[]) => void;
 
+  /** Toplu seçim (NP-400 / NP-403) */
+  selectable?: boolean;
+  selectedKeys?: string[];
+  onSelectedKeysChange?: (keys: string[]) => void;
+
+  /** Satır tıklama / drawer (NP-404) */
+  onRowClick?: (row: T) => void;
+  activeRowKey?: string | null;
+
+  /** Satır aksiyonları */
+  rowActions?: DataTableRowAction<T>[] | ((row: T) => DataTableRowAction<T>[]);
+
+  /** Sticky header + first column */
+  stickyHeader?: boolean;
+  stickyFirstColumn?: boolean;
+
   /** Durumlar */
   loading?: boolean;
   error?: AppError | string | null;
@@ -74,5 +105,8 @@ export type DataTableProps<T> = {
   onEmptyAction?: () => void;
 
   toolbarExtra?: ReactNode;
+  /** Above table (e.g. bulk bar) */
+  selectionBar?: ReactNode;
   className?: string;
+  maxHeightClassName?: string;
 };

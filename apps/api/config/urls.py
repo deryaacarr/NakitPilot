@@ -17,6 +17,7 @@ urlpatterns = [
     path("api/health/", include("apps.health.urls")),
     path("api/auth/", include("apps.accounts.urls")),
     path("api/organizations/", include("apps.organizations.urls")),
+    path("api/saved-views/", include("apps.organizations.saved_view_urls")),
     path("api/memberships/me/", MyMembershipsView.as_view(), name="membership-me"),
     path("api/customers/", include("apps.customers.urls")),
     path("api/invoices/", include("apps.invoices.urls")),

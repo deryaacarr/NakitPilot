@@ -18,6 +18,8 @@ ZERO = Decimal("0.00")
 class InvoiceSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source="customer.name", read_only=True)
     customer_code = serializers.CharField(source="customer.code", read_only=True)
+    customer_risk_status = serializers.CharField(source="customer.risk_status", read_only=True)
+    customer_phone = serializers.CharField(source="customer.phone", read_only=True)
     assigned_user_name = serializers.SerializerMethodField()
     remaining_amount = serializers.SerializerMethodField()
     allocated_amount = serializers.SerializerMethodField()
@@ -33,6 +35,8 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "customer",
             "customer_name",
             "customer_code",
+            "customer_risk_status",
+            "customer_phone",
             "number",
             "invoice_date",
             "due_date",
@@ -60,6 +64,8 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "organization",
             "customer_name",
             "customer_code",
+            "customer_risk_status",
+            "customer_phone",
             "remaining_amount",
             "allocated_amount",
             "overdue_days",
@@ -85,7 +91,8 @@ class InvoiceSerializer(serializers.ModelSerializer):
         return str(obj.allocated_amount())
 
     def get_overdue_days(self, obj: Invoice) -> int:
-        return invoice_overdue_days(obj)
+        # NP-401 — never surface negative overdue days in tables
+        return max(invoice_overdue_days(obj), 0)
 
     def get_actual_delay_days(self, obj: Invoice) -> int | None:
         return invoice_actual_delay_days(obj)

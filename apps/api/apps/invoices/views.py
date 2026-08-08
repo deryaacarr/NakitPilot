@@ -81,6 +81,31 @@ class InvoiceListCreateView(TenantQuerysetMixin, generics.ListCreateAPIView):
         if customer_id:
             qs = qs.filter(customer_id=customer_id)
 
+        assigned = params.get("assigned_user", "").strip()
+        if assigned == "me":
+            qs = qs.filter(assigned_user=self.request.user)
+        elif assigned.isdigit():
+            qs = qs.filter(assigned_user_id=int(assigned))
+
+        risk_status = params.get("risk_status", "").strip()
+        if risk_status:
+            qs = qs.filter(customer__risk_status=risk_status)
+
+        if params.get("promise_today", "").strip().lower() in {"1", "true", "yes"}:
+            from apps.collections.models import PaymentPromise, PaymentPromiseStatus
+
+            promise_customers = PaymentPromise.objects.filter(
+                organization_id=self.get_current_organization().id,
+                status=PaymentPromiseStatus.PENDING,
+                promised_date=today,
+            ).values_list("customer_id", flat=True)
+            qs = qs.filter(customer_id__in=promise_customers)
+
+        remaining_min = _parse_decimal(params.get("remaining_min", ""))
+        if remaining_min is not None:
+            # Prefer invoices with enough total as a proxy; refine in Python for page
+            qs = qs.filter(total_amount__gte=remaining_min)
+
         currency = params.get("currency", "").strip().upper()
         if currency:
             qs = qs.filter(currency=currency)
