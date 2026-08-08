@@ -2,9 +2,11 @@
 
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
-import { useDashboard } from "./dashboard-context";
 import { Breadcrumb } from "./breadcrumb";
+import { useDashboard } from "./dashboard-context";
+import { GlobalSearch } from "./global-search";
 import { NotificationArea } from "./notification-area";
+import { QuickCreateMenu } from "./quick-create-menu";
 import { UserMenu } from "./user-menu";
 
 export function TopNavbar() {
@@ -30,21 +32,27 @@ export function TopNavbar() {
           </svg>
         </button>
 
-        <div className="min-w-0 flex-1">
+        <div className="hidden min-w-0 w-40 shrink-0 lg:block">
           <p className="truncate text-sm font-semibold text-foreground">{organization.name}</p>
-          <div className="mt-0.5 hidden sm:block">
+          <div className="mt-0.5">
             <Breadcrumb />
           </div>
         </div>
 
-        <div className="flex items-center gap-1 sm:gap-2">
+        <GlobalSearch />
+
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          <QuickCreateMenu />
           <ThemeToggle />
           <NotificationArea />
           <UserMenu />
         </div>
       </div>
-      <div className="border-t border-border-default px-4 py-2 sm:hidden">
-        <Breadcrumb />
+      <div className="border-t border-border-default px-4 py-2 lg:hidden">
+        <p className="truncate text-xs font-semibold text-foreground">{organization.name}</p>
+        <div className="mt-1">
+          <Breadcrumb />
+        </div>
       </div>
     </header>
   );
