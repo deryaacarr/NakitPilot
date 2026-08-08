@@ -103,15 +103,36 @@ export const DASHBOARD_NAV: NavLeaf[] = [
 
 export type NavItem = NavLeaf;
 
-export function isNavActive(pathname: string, item: NavLeaf): boolean {
-  const pathOnly = item.href.split("#")[0] || item.href;
-  if (item.exact) {
-    return pathname === pathOnly;
-  }
+export function isNavActive(
+  pathname: string,
+  item: NavLeaf,
+  hash = "",
+): boolean {
+  const [pathOnly = item.href, fragment = ""] = item.href.split("#");
+  const normalizedHash = hash.replace(/^#/, "");
+
   if (pathOnly === "/dashboard") {
     return pathname === "/dashboard";
   }
-  return pathname === pathOnly || pathname.startsWith(`${pathOnly}/`);
+
+  const pathMatch =
+    item.exact
+      ? pathname === pathOnly
+      : pathname === pathOnly || pathname.startsWith(`${pathOnly}/`);
+
+  if (!pathMatch) return false;
+
+  // Hash targets (e.g. /dashboard/settings#subscription) — only one active at a time
+  if (fragment) {
+    return normalizedHash === fragment;
+  }
+
+  // Plain /dashboard/settings — active only when no section hash is selected
+  if (item.exact && pathOnly === "/dashboard/settings") {
+    return !normalizedHash;
+  }
+
+  return true;
 }
 
 /** NP-381 — quick create actions (most frequent first) */

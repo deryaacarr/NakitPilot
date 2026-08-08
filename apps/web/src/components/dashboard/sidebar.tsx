@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { env } from "@/lib/env";
 
@@ -10,28 +10,47 @@ import { useDashboard } from "./dashboard-context";
 import { isNavActive, NAV_GROUPS, NAV_SECONDARY, type NavLeaf } from "./nav-config";
 import { NavIcon } from "./nav-icon";
 
+function useLocationHash() {
+  const [hash, setHash] = useState("");
+  useEffect(() => {
+    const sync = () => setHash(window.location.hash.replace(/^#/, ""));
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+  return [hash, setHash] as const;
+}
+
 function NavLink({
   item,
   collapsed,
   onNavigate,
+  hash,
+  setHash,
 }: {
   item: NavLeaf;
   collapsed?: boolean;
   onNavigate?: () => void;
+  hash: string;
+  setHash: (value: string) => void;
 }) {
   const pathname = usePathname();
-  const active = isNavActive(pathname, item);
+  const active = isNavActive(pathname, item, hash);
 
   return (
     <Link
       href={item.href}
-      onClick={onNavigate}
+      onClick={() => {
+        const fragment = item.href.includes("#") ? item.href.split("#")[1] || "" : "";
+        setHash(fragment);
+        onNavigate?.();
+      }}
       title={collapsed ? item.label : undefined}
       className={[
-        "flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-sm font-medium transition",
+        "flex min-h-11 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-sm font-medium transition",
         collapsed ? "justify-center px-2" : "",
         active
-          ? "bg-primary/10 text-primary ring-1 ring-primary/20"
+          ? "bg-primary/10 text-primary ring-1 ring-primary/15"
           : "text-muted hover:bg-surface-tertiary hover:text-foreground",
       ].join(" ")}
       aria-current={active ? "page" : undefined}
@@ -50,17 +69,18 @@ function NavLinks({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const [hash, setHash] = useLocationHash();
   const [secondaryOpen, setSecondaryOpen] = useState(false);
 
   const openGroups = useMemo(() => {
     const open = new Set<string>();
     for (const group of NAV_GROUPS) {
-      if (group.items.some((item) => isNavActive(pathname, item))) {
+      if (group.items.some((item) => isNavActive(pathname, item, hash))) {
         open.add(group.id);
       }
     }
     return open;
-  }, [pathname]);
+  }, [pathname, hash]);
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -98,6 +118,8 @@ function NavLinks({
                     item={item}
                     collapsed={collapsed}
                     onNavigate={onNavigate}
+                    hash={hash}
+                    setHash={setHash}
                   />
                 ))}
               </div>
@@ -126,6 +148,8 @@ function NavLinks({
                 item={item}
                 collapsed={collapsed}
                 onNavigate={onNavigate}
+                hash={hash}
+                setHash={setHash}
               />
             ))}
           </div>

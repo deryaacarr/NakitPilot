@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { Surface } from "@/components/ui/surface";
 import { enableSampleData, fetchGuidance, type Guidance } from "@/lib/onboarding/api";
 
 export function GuidancePanel() {
@@ -20,18 +21,18 @@ export function GuidancePanel() {
   }, []);
 
   if (!data && !error) return null;
-  if (!data) return <p className="text-sm text-slate-500">{error}</p>;
+  if (!data) return <p className="text-sm text-muted">{error}</p>;
 
   return (
-    <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+    <Surface as="section" className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-slate-900">Kullanım yönlendirmeleri</h2>
-          <p className="mt-1 text-xs text-slate-500">
+          <h2 className="text-sm font-semibold text-foreground">Kullanım yönlendirmeleri</h2>
+          <p className="mt-1 text-xs text-muted">
             Empty state aksiyonları, checklist, örnek rapor ve yardım.
           </p>
         </div>
-        <span className="rounded bg-teal-50 px-2 py-1 text-xs font-medium text-teal-900">
+        <span className="rounded-[var(--radius-md)] bg-primary/15 px-2 py-1 text-xs font-medium text-primary">
           %{data.score}
         </span>
       </div>
@@ -39,16 +40,19 @@ export function GuidancePanel() {
       {data.empty_states.length > 0 ? (
         <ul className="space-y-2">
           {data.empty_states.map((e) => (
-            <li key={e.surface} className="rounded-lg border border-dashed border-slate-200 p-3 text-sm">
-              <p className="font-medium text-slate-900">{e.title}</p>
+            <li
+              key={e.surface}
+              className="rounded-[var(--radius-md)] border border-dashed border-border-strong p-3 text-sm"
+            >
+              <p className="font-medium text-foreground">{e.title}</p>
               <div className="mt-2 flex flex-wrap gap-2">
-                <Link href={e.action_href} className="text-teal-800 underline">
+                <Link href={e.action_href} className="text-primary underline">
                   {e.action_label}
                 </Link>
                 {e.secondary_action === "enable_sample_data" ? (
                   <button
                     type="button"
-                    className="text-slate-600 underline"
+                    className="min-h-11 text-muted underline"
                     onClick={() => void enableSampleData()}
                   >
                     {e.secondary_label}
@@ -61,8 +65,8 @@ export function GuidancePanel() {
       ) : null}
 
       <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Checklist</h3>
-        <ul className="mt-2 space-y-1 text-sm">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-subtle">Checklist</h3>
+        <ul className="mt-2 space-y-1 text-sm text-foreground">
           {data.checklist.map((c) => (
             <li key={c.key}>
               {c.done ? "✓" : "○"} {c.label}
@@ -72,27 +76,27 @@ export function GuidancePanel() {
       </div>
 
       {data.tooltips[0] ? (
-        <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
+        <p className="rounded-[var(--radius-md)] bg-surface-secondary px-3 py-2 text-sm text-foreground">
           İpucu: {data.tooltips[0].text}
         </p>
       ) : null}
 
-      <div className="rounded-lg border border-slate-100 p-3">
-        <h3 className="text-sm font-medium text-slate-900">{data.sample_report.title}</h3>
+      <div className="rounded-[var(--radius-md)] border border-border-default bg-surface-secondary p-3">
+        <h3 className="text-sm font-medium text-foreground">{data.sample_report.title}</h3>
         <dl className="mt-2 grid grid-cols-3 gap-2 text-sm">
           {data.sample_report.metrics.map((m) => (
             <div key={m.label}>
-              <dt className="text-xs text-slate-500">{m.label}</dt>
-              <dd className="font-medium">{m.value}</dd>
+              <dt className="text-xs text-muted">{m.label}</dt>
+              <dd className="font-medium text-foreground">{m.value}</dd>
             </div>
           ))}
         </dl>
-        <p className="mt-2 text-xs text-slate-500">{data.sample_report.note}</p>
+        <p className="mt-2 text-xs text-muted">{data.sample_report.note}</p>
       </div>
 
       <div className="flex flex-wrap gap-3 text-sm">
         {data.help_links.map((h) => (
-          <Link key={h.href} href={h.href} className="text-teal-800 underline">
+          <Link key={h.href} href={h.href} className="text-primary underline">
             {h.label}
           </Link>
         ))}
@@ -100,19 +104,19 @@ export function GuidancePanel() {
 
       {data.announcements.length > 0 ? (
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-subtle">
             Özellik duyuruları
           </h3>
           <ul className="mt-2 space-y-2 text-sm">
             {data.announcements.map((a) => (
               <li key={a.key}>
-                <span className="font-medium">{a.title}</span>
-                <span className="text-slate-600"> — {a.body}</span>
+                <span className="font-medium text-foreground">{a.title}</span>
+                <span className="text-muted"> — {a.body}</span>
               </li>
             ))}
           </ul>
         </div>
       ) : null}
-    </section>
+    </Surface>
   );
 }

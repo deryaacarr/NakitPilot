@@ -15,8 +15,8 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-serif text-3xl tracking-tight text-slate-900">Ayarlar</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="np-page-title">Ayarlar</h1>
+        <p className="mt-1 text-sm text-muted">
           Abonelik, kurumsal yetki/KVKK, entegrasyonlar, e-posta/SMTP ve AI maliyet kontrolü.
         </p>
       </div>

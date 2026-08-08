@@ -385,11 +385,11 @@ export function KolayBiConnectionPanel() {
   const metrics = monitoring?.metrics;
 
   return (
-    <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section id="integrations" className="np-surface space-y-4 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-serif text-2xl tracking-tight text-slate-900">KolayBi bağlantısı</h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <h2 className="font-serif text-2xl tracking-tight text-foreground">KolayBi bağlantısı</h2>
+          <p className="mt-1 text-sm text-muted">
             API anahtarı ile bağlanın, şirketinizi seçin ve eşitlemeyi başlatın.
           </p>
         </div>
@@ -397,10 +397,10 @@ export function KolayBiConnectionPanel() {
           <span
             className={cn(
               "rounded-full px-3 py-1 text-xs font-semibold",
-              connection.status === "connected" && "bg-teal-50 text-teal-800",
-              connection.status === "error" && "bg-red-50 text-red-700",
-              connection.status === "draft" && "bg-slate-100 text-slate-700",
-              connection.status === "disabled" && "bg-slate-100 text-slate-500",
+              connection.status === "connected" && "bg-success-soft text-success-foreground",
+              connection.status === "error" && "bg-danger-soft text-danger-foreground",
+              connection.status === "draft" && "bg-neutral-soft text-neutral-foreground",
+              connection.status === "disabled" && "bg-surface-tertiary text-muted",
             )}
           >
             {STATUS_LABEL[connection.status] ?? connection.status}
@@ -421,35 +421,35 @@ export function KolayBiConnectionPanel() {
             />
           ) : null}
           <dl className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-              <dt className="text-xs font-medium text-slate-500">Bağlantı durumu</dt>
-              <dd className="mt-0.5 text-sm font-semibold text-slate-900">
+            <div className="rounded-[var(--radius-md)] border border-border-default bg-surface-secondary px-3 py-2">
+              <dt className="text-xs font-medium text-muted">Bağlantı durumu</dt>
+              <dd className="mt-0.5 text-sm font-semibold text-foreground">
                 {STATUS_LABEL[connection.status] ?? connection.status}
               </dd>
             </div>
-            <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-              <dt className="text-xs font-medium text-slate-500">Bağlı şirket</dt>
-              <dd className="mt-0.5 text-sm font-semibold text-slate-900">
+            <div className="rounded-[var(--radius-md)] border border-border-default bg-surface-secondary px-3 py-2">
+              <dt className="text-xs font-medium text-muted">Bağlı şirket</dt>
+              <dd className="mt-0.5 text-sm font-semibold text-foreground">
                 {connection.external_company_name || connection.external_company_id || "—"}
               </dd>
             </div>
-            <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-              <dt className="text-xs font-medium text-slate-500">Son başarılı senkronizasyon</dt>
-              <dd className="mt-0.5 text-sm font-semibold text-slate-900">
+            <div className="rounded-[var(--radius-md)] border border-border-default bg-surface-secondary px-3 py-2">
+              <dt className="text-xs font-medium text-muted">Son başarılı senkronizasyon</dt>
+              <dd className="mt-0.5 text-sm font-semibold text-foreground">
                 {formatDateTime(connection.last_successful_sync_at)}
               </dd>
             </div>
-            <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-              <dt className="text-xs font-medium text-slate-500">Son hata</dt>
-              <dd className="mt-0.5 text-sm font-semibold text-slate-900">
+            <div className="rounded-[var(--radius-md)] border border-border-default bg-surface-secondary px-3 py-2">
+              <dt className="text-xs font-medium text-muted">Son hata</dt>
+              <dd className="mt-0.5 text-sm font-semibold text-foreground">
                 {connection.last_error?.trim() ? connection.last_error : "—"}
               </dd>
             </div>
           </dl>
 
           {metrics ? (
-            <div className="space-y-3 border-t border-slate-100 pt-4">
-              <h3 className="text-sm font-semibold text-slate-900">Entegrasyon izleme</h3>
+            <div className="space-y-3 border-t border-border-default pt-4">
+              <h3 className="text-sm font-semibold text-foreground">Entegrasyon izleme</h3>
               <dl className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 {(
                   [
@@ -468,32 +468,32 @@ export function KolayBiConnectionPanel() {
                     ["Son senkron süresi", formatMs(metrics.last_sync_duration_ms)],
                   ] as const
                 ).map(([label, value]) => (
-                  <div key={label} className="rounded-lg border border-slate-100 px-3 py-2">
-                    <dt className="text-xs text-slate-500">{label}</dt>
-                    <dd className="mt-0.5 text-sm font-semibold text-slate-900">{value}</dd>
+                  <div key={label} className="rounded-[var(--radius-md)] border border-border-default px-3 py-2">
+                    <dt className="text-xs text-muted">{label}</dt>
+                    <dd className="mt-0.5 text-sm font-semibold text-foreground">{value}</dd>
                   </div>
                 ))}
               </dl>
               {monitoring && monitoring.open_conflicts > 0 ? (
-                <p className="text-sm text-amber-800">Açık çakışma: {monitoring.open_conflicts}</p>
+                <p className="text-sm text-warning-foreground">Açık çakışma: {monitoring.open_conflicts}</p>
               ) : null}
             </div>
           ) : null}
 
           {conflicts.length > 0 ? (
-            <div className="space-y-3 border-t border-slate-100 pt-4">
-              <h3 className="text-sm font-semibold text-slate-900">Senkronizasyon çakışmaları</h3>
+            <div className="space-y-3 border-t border-border-default pt-4">
+              <h3 className="text-sm font-semibold text-foreground">Senkronizasyon çakışmaları</h3>
               <ul className="space-y-3">
                 {conflicts.map((conflict) => (
                   <li
                     key={conflict.id}
-                    className="rounded-lg border border-amber-100 bg-amber-50/40 px-3 py-3"
+                    className="rounded-[var(--radius-md)] border border-warning/30 bg-warning-soft/60 px-3 py-3"
                   >
-                    <p className="text-sm font-medium text-slate-900">
+                    <p className="text-sm font-medium text-foreground">
                       {CONFLICT_TYPE_LABEL[conflict.conflict_type] ?? conflict.conflict_type}
                     </p>
-                    <p className="mt-1 text-sm text-slate-600">{conflict.message}</p>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-sm text-muted">{conflict.message}</p>
+                    <p className="mt-1 text-xs text-muted">
                       {conflict.entity_type}
                       {conflict.external_id ? ` · ${conflict.external_id}` : ""}
                     </p>
@@ -552,8 +552,8 @@ export function KolayBiConnectionPanel() {
       ) : null}
 
       {step === "credentials" ? (
-        <div className="space-y-4 border-t border-slate-100 pt-4">
-          <p className="text-sm text-slate-600">
+        <div className="space-y-4 border-t border-border-default pt-4">
+          <p className="text-sm text-muted">
             1. Adım — KolayBi API anahtarı ve Channel ID girin, ardından bağlantıyı test edin.
           </p>
           <Input
@@ -581,8 +581,8 @@ export function KolayBiConnectionPanel() {
       ) : null}
 
       {step === "companies" ? (
-        <div className="space-y-4 border-t border-slate-100 pt-4">
-          <p className="text-sm text-slate-600">2. Adım — Eşitlemek istediğiniz KolayBi şirketini seçin.</p>
+        <div className="space-y-4 border-t border-border-default pt-4">
+          <p className="text-sm text-muted">2. Adım — Eşitlemek istediğiniz KolayBi şirketini seçin.</p>
           <Select
             label="KolayBi şirketi"
             options={companyOptions}
@@ -621,8 +621,8 @@ export function KolayBiConnectionPanel() {
       ) : null}
 
       {step === "settings" ? (
-        <div className="space-y-4 border-t border-slate-100 pt-4">
-          <p className="text-sm text-slate-600">
+        <div className="space-y-4 border-t border-border-default pt-4">
+          <p className="text-sm text-muted">
             3. Adım — Senkronizasyon sıklığını belirleyin ve ilk eşitlemeyi başlatın.
           </p>
           <Select

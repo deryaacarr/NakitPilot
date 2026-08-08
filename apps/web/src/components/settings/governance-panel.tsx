@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
+import { Button } from "@/components/ui/button";
+import { Surface } from "@/components/ui/surface";
 import {
   fetchAccessReport,
   fetchApprovals,
@@ -34,17 +36,7 @@ export function GovernancePanel() {
   const [message, setMessage] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
-    const [
-      r,
-      s,
-      ret,
-      a,
-      e,
-      acc,
-      inv,
-      ssoRes,
-      m,
-    ] = await Promise.all([
+    const [r, s, ret, a, e, acc, inv, ssoRes, m] = await Promise.all([
       fetchCustomRoles(),
       fetchSessions(),
       fetchRetention(),
@@ -72,33 +64,33 @@ export function GovernancePanel() {
   }, [reload]);
 
   return (
-    <section id="governance" className="space-y-6 rounded-xl border border-slate-200 bg-white p-4">
+    <Surface as="section" id="users" className="space-y-6">
       <div>
-        <h2 className="text-sm font-semibold text-slate-900">Kurumsal yetki &amp; KVKK</h2>
-        <p className="mt-1 text-xs text-slate-500">
+        <h2 className="text-sm font-semibold text-foreground">Kurumsal yetki &amp; KVKK</h2>
+        <p className="mt-1 text-xs text-muted">
           Özel roller, oturumlar, SSO, saklama, dışa aktarma, silme ve veri envanteri.
         </p>
       </div>
-      {error ? <p className="text-sm text-rose-600">{error}</p> : null}
-      {message ? <p className="text-sm text-teal-800">{message}</p> : null}
+      {error ? <p className="text-sm text-danger-foreground">{error}</p> : null}
+      {message ? <p className="text-sm text-success-foreground">{message}</p> : null}
 
       <Block title="Özel roller (NP-300)">
-        <ul className="space-y-1 text-sm">
+        <ul className="space-y-1 text-sm text-foreground">
           {roles.map((role) => (
             <li key={String(role.id)}>
               {String(role.name)}
-              <span className="text-slate-500">
+              <span className="text-muted">
                 {" "}
                 · {(role.permissions as string[] | undefined)?.length ?? 0} izin
               </span>
             </li>
           ))}
-          {roles.length === 0 ? <li className="text-slate-500">Rol yok / yetki yetersiz</li> : null}
+          {roles.length === 0 ? <li className="text-muted">Rol yok / yetki yetersiz</li> : null}
         </ul>
       </Block>
 
       <Block title="Aktif oturumlar (NP-305)">
-        <ul className="space-y-2 text-sm">
+        <ul className="space-y-2 text-sm text-foreground">
           {sessions.map((s) => (
             <li key={String(s.id)} className="flex items-center justify-between gap-2">
               <span>
@@ -107,7 +99,7 @@ export function GovernancePanel() {
               </span>
               <button
                 type="button"
-                className="text-rose-700 underline"
+                className="min-h-11 text-danger-foreground underline"
                 onClick={() => void revokeSession(Number(s.id)).then(() => reload())}
               >
                 Çıkış yaptır
@@ -115,9 +107,10 @@ export function GovernancePanel() {
             </li>
           ))}
         </ul>
-        <button
+        <Button
           type="button"
-          className="mt-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
+          variant="outline"
+          className="mt-2"
           onClick={() =>
             void revokeAllSessions().then((res) => {
               if (res.ok) setMessage(`${res.data.revoked_count} oturum sonlandırıldı`);
@@ -126,52 +119,55 @@ export function GovernancePanel() {
           }
         >
           Tüm oturumları sonlandır
-        </button>
+        </Button>
       </Block>
 
       <Block title="SSO (NP-304)">
-        <ul className="text-sm space-y-1">
+        <ul className="space-y-1 text-sm text-foreground">
           {sso.map((p) => (
             <li key={String(p.id)}>
               {String(p.name)} · {String(p.protocol)} · {p.is_enabled ? "aktif" : "pasif"}
             </li>
           ))}
           {sso.length === 0 ? (
-            <li className="text-slate-500">Enterprise pakette SAML / OIDC / Google / Entra</li>
+            <li className="text-muted">Enterprise pakette SAML / OIDC / Google / Entra</li>
           ) : null}
         </ul>
       </Block>
 
       <Block title="Saklama politikası (NP-310)">
         {retention ? (
-          <dl className="grid gap-2 sm:grid-cols-2 text-sm">
-            {Object.entries((retention.labels as Record<string, string>) || {}).map(([key, label]) => (
-              <div key={key}>
-                <dt className="text-xs text-slate-500">{label}</dt>
-                <dd>{String(retention[key])} gün</dd>
-              </div>
-            ))}
+          <dl className="grid gap-2 text-sm sm:grid-cols-2">
+            {Object.entries((retention.labels as Record<string, string>) || {}).map(
+              ([key, label]) => (
+                <div key={key}>
+                  <dt className="text-xs text-muted">{label}</dt>
+                  <dd className="text-foreground">{String(retention[key])} gün</dd>
+                </div>
+              ),
+            )}
           </dl>
         ) : (
-          <p className="text-sm text-slate-500">Yüklenemedi (paket yetkisi gerekebilir).</p>
+          <p className="text-sm text-muted">Yüklenemedi (paket yetkisi gerekebilir).</p>
         )}
       </Block>
 
       <Block title="Veri dışa aktarma (NP-311)">
-        <button
+        <Button
           type="button"
-          className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm text-white"
           onClick={() =>
-            void startExport(["customers", "invoices", "payments", "tasks", "audit"]).then((res) => {
-              if (!res.ok) setError(res.error.message);
-              else setMessage("Dışa aktarma hazır");
-              void reload();
-            })
+            void startExport(["customers", "invoices", "payments", "tasks", "audit"]).then(
+              (res) => {
+                if (!res.ok) setError(res.error.message);
+                else setMessage("Dışa aktarma hazır");
+                void reload();
+              },
+            )
           }
         >
           Dışa aktarımı başlat
-        </button>
-        <ul className="mt-2 space-y-1 text-sm">
+        </Button>
+        <ul className="mt-2 space-y-1 text-sm text-foreground">
           {exports.slice(0, 5).map((job) => (
             <li key={String(job.id)}>
               #{String(job.id)} · {String(job.status)}
@@ -182,7 +178,7 @@ export function GovernancePanel() {
 
       <Block title="Maskeleme örneği (NP-313)">
         {mask ? (
-          <ul className="text-sm space-y-1">
+          <ul className="space-y-1 text-sm text-foreground">
             <li>Telefon: {mask.phone}</li>
             <li>E-posta: {mask.email}</li>
             <li>Vergi no: {mask.tax_number}</li>
@@ -191,18 +187,18 @@ export function GovernancePanel() {
       </Block>
 
       <Block title="Onay kuyruğu (NP-303)">
-        <ul className="text-sm space-y-1">
+        <ul className="space-y-1 text-sm text-foreground">
           {approvals.slice(0, 5).map((a) => (
             <li key={String(a.id)}>
               {String(a.action_type)} · {String(a.status)}
             </li>
           ))}
-          {approvals.length === 0 ? <li className="text-slate-500">Bekleyen onay yok</li> : null}
+          {approvals.length === 0 ? <li className="text-muted">Bekleyen onay yok</li> : null}
         </ul>
       </Block>
 
       <Block title="Veri erişim raporu (NP-314)">
-        <ul className="text-sm space-y-1 max-h-40 overflow-auto">
+        <ul className="max-h-40 space-y-1 overflow-auto text-sm text-foreground">
           {access.slice(0, 10).map((row) => (
             <li key={String(row.id)}>
               {String(row.actor_email ?? row.actor_id)} · {String(row.action)} ·{" "}
@@ -213,11 +209,11 @@ export function GovernancePanel() {
       </Block>
 
       <Block title="Veri işleme envanteri (NP-315)">
-        <ul className="text-sm space-y-1 max-h-40 overflow-auto">
+        <ul className="max-h-40 space-y-1 overflow-auto text-sm text-foreground">
           {inventory.map((item) => (
             <li key={String(item.id)}>
               <span className="font-medium">{String(item.field_key)}</span>
-              <span className="text-slate-500">
+              <span className="text-muted">
                 {" "}
                 · {String(item.data_type)} · {String(item.retention_days)}g
               </span>
@@ -227,27 +223,31 @@ export function GovernancePanel() {
       </Block>
 
       <Block title="Organizasyon silme (NP-312)">
-        <button
+        <Button
           type="button"
-          className="rounded-lg border border-rose-200 px-3 py-1.5 text-sm text-rose-700"
+          variant="outline"
+          className="border-danger/40 text-danger-foreground"
           onClick={() =>
             void requestDeletion("Yönetici talebi").then((res) => {
               if (!res.ok) setError(res.error.message);
-              else setMessage(`Silme talebi oluşturuldu — bekleme: ${String(res.data.waiting_until)}`);
+              else
+                setMessage(
+                  `Silme talebi oluşturuldu — bekleme: ${String(res.data.waiting_until)}`,
+                );
             })
           }
         >
           Silme talebi oluştur (bekleme süresi ile)
-        </button>
+        </Button>
       </Block>
-    </section>
+    </Surface>
   );
 }
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="border-t border-slate-100 pt-4">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</h3>
+    <div className="border-t border-border-default pt-4">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-subtle">{title}</h3>
       <div className="mt-2">{children}</div>
     </div>
   );

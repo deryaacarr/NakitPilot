@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { Surface } from "@/components/ui/surface";
 import { fetchAIUsageSummary, type AIUsageSummary } from "@/lib/ai-usage/api";
 
 export function AIUsagePanel() {
@@ -24,15 +25,15 @@ export function AIUsagePanel() {
   }, []);
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4">
-      <h2 className="text-sm font-semibold text-slate-900">AI maliyet kontrolü</h2>
-      <p className="mt-1 text-xs text-slate-500">
+    <Surface as="section">
+      <h2 className="text-sm font-semibold text-foreground">AI maliyet kontrolü</h2>
+      <p className="mt-1 text-xs text-muted">
         Paket kullanımı, günlük kullanıcı limiti, organizasyon bütçesi, içerik kısaltma ve önbellek.
       </p>
-      {error ? <p className="mt-3 text-sm text-slate-500">{error}</p> : null}
-      {!data && !error ? <p className="mt-3 text-sm text-slate-500">Yükleniyor…</p> : null}
+      {error ? <p className="mt-3 text-sm text-muted">{error}</p> : null}
+      {!data && !error ? <p className="mt-3 text-sm text-muted">Yükleniyor…</p> : null}
       {data ? (
-        <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
+        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
           <Item label="Paket" value={data.package} />
           <Item
             label="Aylık token"
@@ -54,15 +55,15 @@ export function AIUsagePanel() {
           <Item label="Önbellek TTL" value={`${data.limits.cache_ttl_seconds} sn`} />
         </dl>
       ) : null}
-    </section>
+    </Surface>
   );
 }
 
 function Item({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs text-slate-500">{label}</dt>
-      <dd className="font-medium text-slate-900">{value}</dd>
+      <dt className="text-xs text-muted">{label}</dt>
+      <dd className="font-medium text-foreground">{value}</dd>
     </div>
   );
 }

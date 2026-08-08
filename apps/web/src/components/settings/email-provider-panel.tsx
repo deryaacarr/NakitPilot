@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Surface } from "@/components/ui/surface";
 import { useToast } from "@/components/ui/toast";
 import { fetchEmailProviderConfig, saveEmailProviderConfig } from "@/lib/messages/api";
 import type { EmailProviderConfig } from "@/lib/messages/types";
@@ -56,84 +59,66 @@ export function EmailProviderPanel() {
   };
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4">
-      <h2 className="text-sm font-semibold text-slate-900">E-posta sağlayıcı (SMTP / API)</h2>
-      <p className="mt-1 text-xs text-slate-500">
+    <Surface as="section">
+      <h2 className="text-sm font-semibold text-foreground">E-posta sağlayıcı (SMTP / API)</h2>
+      <p className="mt-1 text-xs text-muted">
         Kimlik bilgileri şifreli saklanır. Gönderim kullanıcı onayı ile yapılır.
         {config?.has_credentials ? ` · kayıtlı: …${config.key_hint}` : ""}
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm">
-          <span className="mb-1 block text-slate-500">Sağlayıcı</span>
-          <select
-            className="h-10 w-full rounded-lg border border-slate-300 px-3"
-            value={provider}
-            onChange={(e) => setProvider(e.target.value)}
-          >
-            <option value="SMTP">SMTP</option>
-            <option value="API">Sağlayıcı API</option>
-            <option value="CONSOLE">Konsol (geliştirme)</option>
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-slate-500">Gönderen e-posta</span>
-          <input
-            className="h-10 w-full rounded-lg border border-slate-300 px-3"
-            value={fromEmail}
-            onChange={(e) => setFromEmail(e.target.value)}
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-slate-500">Gönderen adı</span>
-          <input
-            className="h-10 w-full rounded-lg border border-slate-300 px-3"
-            value={fromName}
-            onChange={(e) => setFromName(e.target.value)}
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-slate-500">SMTP host</span>
-          <input
-            className="h-10 w-full rounded-lg border border-slate-300 px-3"
-            value={smtpHost}
-            onChange={(e) => setSmtpHost(e.target.value)}
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-slate-500">SMTP port</span>
-          <input
-            type="number"
-            className="h-10 w-full rounded-lg border border-slate-300 px-3"
-            value={smtpPort}
-            onChange={(e) => setSmtpPort(Number(e.target.value) || 587)}
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-slate-500">Kullanıcı adı</span>
-          <input
-            className="h-10 w-full rounded-lg border border-slate-300 px-3"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="off"
-          />
-        </label>
-        <label className="block text-sm sm:col-span-2">
-          <span className="mb-1 block text-slate-500">Şifre / API anahtarı</span>
-          <input
+        <Select
+          label="Sağlayıcı"
+          value={provider}
+          onChange={(e) => setProvider(e.target.value)}
+          options={[
+            { value: "SMTP", label: "SMTP" },
+            { value: "API", label: "Sağlayıcı API" },
+            { value: "CONSOLE", label: "Konsol (geliştirme)" },
+          ]}
+        />
+        <Input
+          label="Gönderen e-posta"
+          value={fromEmail}
+          onChange={(e) => setFromEmail(e.target.value)}
+        />
+        <Input
+          label="Gönderen adı"
+          value={fromName}
+          onChange={(e) => setFromName(e.target.value)}
+        />
+        <Input
+          label="SMTP host"
+          value={smtpHost}
+          onChange={(e) => setSmtpHost(e.target.value)}
+        />
+        <Input
+          label="SMTP port"
+          type="number"
+          value={smtpPort}
+          onChange={(e) => setSmtpPort(Number(e.target.value) || 587)}
+        />
+        <Input
+          label="Kullanıcı adı"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          autoComplete="off"
+        />
+        <div className="sm:col-span-2">
+          <Input
+            label="Şifre / API anahtarı"
             type="password"
-            className="h-10 w-full rounded-lg border border-slate-300 px-3"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="new-password"
             placeholder="Değiştirmek için yeni değer girin"
           />
-        </label>
+        </div>
       </div>
       <div className="mt-4 flex justify-end">
         <Button onClick={() => void onSave()} loading={saving} disabled={!fromEmail}>
           Kaydet
         </Button>
       </div>
-    </section>
+    </Surface>
   );
 }
