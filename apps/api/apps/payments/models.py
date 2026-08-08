@@ -116,10 +116,21 @@ class Payment(TenantModel):
         return total if total is not None else ZERO
 
     def refresh_unallocated(self, *, save: bool = True) -> Decimal:
+        """Recompute leftover. NP-520: never silently clamp negative leftovers."""
+        from apps.payments.invariants import (
+            FinancialInvariantError,
+            assert_payment_allocations_within_amount,
+        )
+
         allocated = self.allocated_total()
         leftover = self.amount - allocated
         if leftover < ZERO:
-            leftover = ZERO
+            raise FinancialInvariantError(
+                f"PaymentAllocation toplamı ({allocated}) Payment amount ({self.amount}) "
+                f"değerini aşamaz (payment_id={self.pk}).",
+                "allocation_exceeds_payment",
+            )
+        assert_payment_allocations_within_amount(self)
         self.unallocated_amount = leftover
         if save:
             self.save(update_fields=["unallocated_amount", "updated_at"])
@@ -178,3 +189,18 @@ class PaymentAllocation(TenantModel):
 
     def __str__(self) -> str:
         return f"Alloc {self.amount} → invoice {self.invoice_id}"
+
+    def save(self, *args, **kwargs):
+        """NP-520: enforce allocation invariants at DB write time (pre + post)."""
+        skip = kwargs.pop("skip_financial_invariants", False)
+        if not skip:
+            from apps.payments.invariants import (
+                assert_allocation_would_be_valid,
+                enforce_after_allocation_write,
+            )
+
+            assert_allocation_would_be_valid(self)
+            super().save(*args, **kwargs)
+            enforce_after_allocation_write(self)
+            return
+        super().save(*args, **kwargs)

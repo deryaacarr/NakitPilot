@@ -14,7 +14,8 @@ from apps.payments.serializers import (
     PaymentCreateSerializer,
     PaymentSerializer,
 )
-from apps.payments.services import PaymentValidationError, cancel_payment
+from apps.payments.invariants import FinancialInvariantError
+from apps.payments.services import cancel_payment
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -140,7 +141,7 @@ class PaymentCancelView(TenantQuerysetMixin, APIView):
                 user=request.user,
                 reason=ser.validated_data.get("reason", ""),
             )
-        except PaymentValidationError as exc:
+        except FinancialInvariantError as exc:
             return Response(
                 {"code": exc.code, "detail": exc.message},
                 status=status.HTTP_400_BAD_REQUEST,

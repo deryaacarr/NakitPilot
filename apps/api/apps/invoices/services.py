@@ -76,6 +76,11 @@ def recalculate_invoice_status(
         invoice.status = new_status
         if save:
             invoice.save(update_fields=update_fields)
+
+    # NP-520: status ↔ remaining invariants after every recalculation path.
+    from apps.payments.invariants import enforce_invoice_financial_invariants
+
+    enforce_invoice_financial_invariants(invoice)
     return new_status
 
 

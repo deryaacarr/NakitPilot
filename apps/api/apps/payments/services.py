@@ -14,6 +14,11 @@ from apps.collections.services import evaluate_promises_after_payment
 from apps.customers.metrics import customer_financial_metrics
 from apps.invoices.models import Invoice, InvoiceStatus
 from apps.invoices.services import recalculate_invoices_after_payment
+from apps.payments.invariants import (
+    FinancialInvariantError,
+    assert_payment_allocations_within_amount,
+    enforce_payment_financial_invariants,
+)
 from apps.payments.models import ZERO, Payment, PaymentAllocation
 from apps.risk.triggers import bump_customer_risk
 
@@ -24,11 +29,9 @@ OPEN_STATUSES = {
 }
 
 
-class PaymentValidationError(Exception):
+class PaymentValidationError(FinancialInvariantError):
     def __init__(self, message: str, code: str = "invalid_payment"):
-        super().__init__(message)
-        self.message = message
-        self.code = code
+        super().__init__(message, code=code)
 
 
 def _quantize(value: Decimal) -> Decimal:
@@ -164,6 +167,8 @@ def _persist_allocations(payment: Payment, resolved: list[tuple[Invoice, Decimal
             amount=amount,
         )
     payment.refresh_unallocated(save=True)
+    # Amount invariants only here — status (PAID/OVERDUE) is checked after recalculate.
+    assert_payment_allocations_within_amount(payment)
     return list({*old_invoice_ids, *[inv.id for inv, _ in resolved]})
 
 
@@ -177,6 +182,9 @@ def _after_payment_side_effects(
     """NP-073: status, balance, promises, risk, audit."""
     if invoice_ids:
         recalculate_invoices_after_payment(invoice_ids)
+
+    # NP-520: re-check after status recalculation (PAID/OVERDUE ↔ remaining)
+    enforce_payment_financial_invariants(payment, invoice_ids=invoice_ids)
 
     customer = payment.customer
     customer.updated_at = timezone.now()
@@ -360,6 +368,8 @@ def cancel_payment(
 
     if invoice_ids:
         recalculate_invoices_after_payment(invoice_ids)
+        # Cancelled payment allocations are ignored; re-check invoice status invariants.
+        enforce_payment_financial_invariants(payment, invoice_ids=invoice_ids)
 
     evaluate_promises_after_payment(payment.customer)
     # NP-103: ödeme iptali → risk

@@ -129,9 +129,13 @@ class Invoice(TenantModel):
         )["total"]
         return total if total is not None else ZERO
 
+    def remaining_amount_raw(self) -> Decimal:
+        """Unclamped remaining (NP-520 invariant checks). Never stored."""
+        return self.total_amount - self.allocated_amount()
+
     def remaining_amount(self) -> Decimal:
-        """Derived: total_amount − allocations (never stored)."""
-        remaining = self.total_amount - self.allocated_amount()
+        """Derived: total_amount − allocations (never stored). Clamped ≥ 0 for API."""
+        remaining = self.remaining_amount_raw()
         return remaining if remaining > ZERO else ZERO
 
     def cancel(self) -> None:

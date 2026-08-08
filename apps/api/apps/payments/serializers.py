@@ -4,7 +4,8 @@ from rest_framework import serializers
 
 from apps.customers.models import Customer
 from apps.payments.models import Payment, PaymentAllocation, PaymentMethod
-from apps.payments.services import PaymentValidationError, create_payment, replace_allocations
+from apps.payments.invariants import FinancialInvariantError
+from apps.payments.services import create_payment, replace_allocations
 
 
 class PaymentAllocationSerializer(serializers.ModelSerializer):
@@ -85,7 +86,7 @@ class PaymentCreateSerializer(serializers.Serializer):
                 allocations=validated_data.get("allocations"),
                 auto_allocate=bool(validated_data.get("auto_allocate")),
             )
-        except PaymentValidationError as exc:
+        except FinancialInvariantError as exc:
             raise serializers.ValidationError({"code": exc.code, "detail": exc.message}) from exc
 
 
@@ -110,7 +111,7 @@ class PaymentAllocationsUpdateSerializer(serializers.Serializer):
             plan = self.validated_data["allocations"]
         try:
             return replace_allocations(payment, plan, actor=actor)
-        except PaymentValidationError as exc:
+        except FinancialInvariantError as exc:
             raise serializers.ValidationError({"code": exc.code, "detail": exc.message}) from exc
 
 
